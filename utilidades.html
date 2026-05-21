@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>miyu-herramientas</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #f7f4f0;
+      color: #3a3a3a;
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar { width: 260px; background: #fcfaf8; border-right: 1px solid #e8e2da; height: 100vh; position: fixed; overflow-y: auto; display: flex; flex-direction: column; z-index: 10; }
+    .sidebar-header { padding: 20px 16px 14px; border-bottom: 1px solid #e8e2da; }
+    .sidebar-header h1 { font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    .sidebar-header h1 svg { width: 22px; height: 22px; color: #b0a090; }
+    .sidebar-header p { font-size: 0.75rem; color: #b0a090; margin-top: 2px; }
+    .tool-list { padding: 8px; flex: 1; }
+    .tool-item { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 10px; cursor: pointer; transition: all 0.12s; margin-bottom: 2px; }
+    .tool-item:hover { background: #efece6; }
+    .tool-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .tool-info { flex: 1; min-width: 0; }
+    .tool-name { font-weight: 600; font-size: 0.85rem; }
+    .tool-desc { font-size: 0.7rem; color: #b0a090; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .main { flex: 1; margin-left: 260px; padding: 48px 48px 48px 64px; min-height: 100vh; max-width: 900px; }
+    .tool-panel { display: none; }
+    .tool-panel.active { display: block; animation: fadeIn 0.18s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .panel-header { margin-bottom: 32px; }
+    .panel-header h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+    .panel-header h2 svg { width: 26px; height: 26px; }
+    .panel-header p { color: #b0a090; font-size: 0.9rem; }
+    .back-btn { display: none; }
+    label { display: block; margin: 14px 0 6px; font-weight: 500; font-size: 0.85rem; color: #555; }
+    input[type="text"], input[type="number"], input[type="password"], textarea, select { width: 100%; padding: 11px 14px; border: 1.5px solid #e8e2da; border-radius: 10px; font-size: 0.9rem; font-family: inherit; background: #fffdfb; transition: border-color 0.2s, box-shadow 0.2s; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: #c8b8a8; box-shadow: 0 0 0 3px rgba(200, 184, 168, 0.15); }
+    textarea { resize: vertical; min-height: 90px; }
+    .btn-row { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .btn { color: #fff; border: none; padding: 11px 18px; border-radius: 10px; cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit; transition: all 0.12s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn svg { width: 16px; height: 16px; }
+    .btn:active { transform: scale(0.97); }
+    .output { margin-top: 14px; padding: 14px; background: #fffdfb; border-radius: 12px; word-break: break-all; min-height: 48px; font-size: 0.9rem; line-height: 1.5; border: 1px solid #e8e2da; }
+    .output img { max-width: 100%; border-radius: 8px; }
+    .output canvas { display: block; margin: 10px auto; }
+    input[type="range"] { width: 100%; height: 6px; border-radius: 3px; background: #e8e2da; appearance: none; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; }
+    .checkbox-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+    .checkbox-row input[type="checkbox"] { width: 18px; height: 18px; }
+    .checkbox-row label { margin: 0; font-weight: 400; }
+    .btn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 12px; }
+    .btn-grid .btn { padding: 9px 4px; font-size: 0.74rem; justify-content: center; background: #f0ece6; color: #555; }
+    .btn-grid .btn:hover { color: #fff; }
+    .progress { height: 4px; background: #e8e2da; border-radius: 2px; margin-top: 12px; overflow: hidden; display: none; }
+    .progress.active { display: block; }
+    .progress-bar { height: 100%; width: 0%; transition: width 0.3s; }
+    .timer-display { font-size: 2.8rem; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; margin: 18px 0; font-family: monospace; }
+    .timer-controls { display: flex; gap: 8px; justify-content: center; }
+    hr { border: none; border-top: 1px solid #e8e2da; margin: 20px 0; }
+    .base-group { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .base-btn { padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e8e2da; cursor: pointer; font-size: 0.85rem; font-weight: 500; font-family: inherit; background: #fffdfb; transition: all 0.12s; }
+    .base-btn.active { color: #fff; }
+    .str-meter { height: 8px; border-radius: 4px; background: #e8e2da; margin-top: 10px; overflow: hidden; }
+    .str-bar { height: 100%; width: 0%; border-radius: 4px; transition: width 0.3s, background 0.3s; }
+    .shadow-box { width: 100%; height: 100px; border-radius: 12px; margin-top: 14px; background: #fffdfb; border: 1px solid #e8e2da; }
+    .app-header { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #e8e2da; }
+    .app-header-title { font-size: 1.1rem; font-weight: 700; color: #3a3a3a; }
+    .sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid #e8e2da; border-radius: 8px; background: #fffdfb; color: #b0a090; cursor: pointer; flex-shrink: 0; }
+    .sidebar-toggle:hover { background: #efece6; color: #3a3a3a; }
+    .sidebar-toggle svg { width: 18px; height: 18px; }
+    .sidebar, .main { transition: width 0.25s ease, margin-left 0.25s ease, opacity 0.25s ease; }
+    body.sidebar-collapsed .sidebar { width: 0; border-right: none; overflow: hidden; opacity: 0; }
+    body.sidebar-collapsed .main { margin-left: 0; }
+    @media (max-width: 768px) {
+      .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid #e8e2da; }
+      .sidebar-header { padding: 14px; }
+      .sidebar-header h1 { font-size: 1rem; }
+      .sidebar-header p { display: none; }
+      .tool-list { display: flex; flex-wrap: wrap; padding: 6px; gap: 2px; }
+      .tool-item { flex: 0 0 auto; padding: 8px 12px; }
+      .tool-item .tool-desc { display: none; }
+      .tool-item .tool-name { font-size: 0.78rem; }
+      .main { margin-left: 0; padding: 20px; }
+      .panel-header h2 { font-size: 1.3rem; }
+      .back-btn { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer; margin-bottom: 10px; }
+      .app-header { display: none; }
+      .sidebar-toggle { display: none; }
+    }
+    .tool-item.active { color: #fff; }
+    .tool-item.active .tool-desc { color: rgba(255,255,255,0.7); }
+    .tool-item.active svg { color: #fff !important; }
+
+    /* QR - sky */
+    .tool-item[data-tool="qr"] svg { color: #8bb8d4; }
+    .tool-item[data-tool="qr"].active { background: #8bb8d4; }
+    #panel-qr .panel-header h2 svg { color: #8bb8d4; }
+    #panel-qr .btn { background: #8bb8d4; }
+    #panel-qr .btn:hover { background: #7aa8c4; }
+    #panel-qr .btn-green { background: #b8d4b8; }
+    #panel-qr .btn-green:hover { background: #a8c4a8; }
+    #panel-qr .btn-grid .btn:hover { background: #8bb8d4; }
+    #panel-qr input[type="range"]::-webkit-slider-thumb { background: #8bb8d4; }
+    #panel-qr input[type="checkbox"] { accent-color: #8bb8d4; }
+    #panel-qr .progress-bar { background: #8bb8d4; }
+
+    /* Password - lavender */
+    .tool-item[data-tool="password"] svg { color: #b8a0d4; }
+    .tool-item[data-tool="password"].active { background: #b8a0d4; }
+    #panel-password .panel-header h2 svg { color: #b8a0d4; }
+    #panel-password .btn { background: #b8a0d4; }
+    #panel-password .btn:hover { background: #a890c4; }
+    #panel-password .btn-green { background: #d4b8d4; }
+    #panel-password .btn-green:hover { background: #c4a8c4; }
+    #panel-password input[type="range"]::-webkit-slider-thumb { background: #b8a0d4; }
+    #panel-password input[type="checkbox"] { accent-color: #b8a0d4; }
+
+    /* Text - mint */
+    .tool-item[data-tool="text"] svg { color: #8bc8b0; }
+    .tool-item[data-tool="text"].active { background: #8bc8b0; }
+    #panel-text .panel-header h2 svg { color: #8bc8b0; }
+    #panel-text .btn { background: #8bc8b0; }
+    #panel-text .btn:hover { background: #7bb8a0; }
+    #panel-text .btn-grid .btn:hover { background: #8bc8b0; }
+
+    /* JSON - rose */
+    .tool-item[data-tool="json"] svg { color: #d4a0a8; }
+    .tool-item[data-tool="json"].active { background: #d4a0a8; }
+    #panel-json .panel-header h2 svg { color: #d4a0a8; }
+    #panel-json .btn { background: #d4a0a8; }
+    #panel-json .btn:hover { background: #c49098; }
+    #panel-json .btn-green { background: #b8d4b8; }
+    #panel-json .btn-green:hover { background: #a8c4a8; }
+    #panel-json .btn-grid .btn:hover { background: #d4a0a8; }
+
+    /* Color - peach */
+    .tool-item[data-tool="color"] svg { color: #d4b888; }
+    .tool-item[data-tool="color"].active { background: #d4b888; }
+    #panel-color .panel-header h2 svg { color: #d4b888; }
+    #panel-color .btn { background: #d4b888; }
+    #panel-color .btn:hover { background: #c4a878; }
+
+    /* Image - sage */
+    .tool-item[data-tool="image"] svg { color: #a0c090; }
+    .tool-item[data-tool="image"].active { background: #a0c090; }
+    #panel-image .panel-header h2 svg { color: #a0c090; }
+    #panel-image .btn { background: #a0c090; }
+    #panel-image .btn:hover { background: #90b080; }
+    #panel-image .btn-green { background: #c0d4b8; }
+    #panel-image .btn-green:hover { background: #b0c4a8; }
+
+    /* FFmpeg - lilac */
+    .tool-item[data-tool="ffmpeg"] svg { color: #c0a0d0; }
+    .tool-item[data-tool="ffmpeg"].active { background: #c0a0d0; }
+    #panel-ffmpeg .panel-header h2 svg { color: #c0a0d0; }
+    #panel-ffmpeg .btn { background: #c0a0d0; }
+    #panel-ffmpeg .btn:hover { background: #b090c0; }
+    #panel-ffmpeg .btn-green { background: #b8d4c8; }
+    #panel-ffmpeg .btn-green:hover { background: #a8c4b8; }
+    #panel-ffmpeg .progress-bar { background: #c0a0d0; }
+
+    /* Hash - sky blue */
+    .tool-item[data-tool="hash"] svg { color: #88b8d8; }
+    .tool-item[data-tool="hash"].active { background: #88b8d8; }
+    #panel-hash .panel-header h2 svg { color: #88b8d8; }
+    #panel-hash .btn { background: #88b8d8; }
+    #panel-hash .btn:hover { background: #78a8c8; }
+
+    /* Unit - seafoam */
+    .tool-item[data-tool="unit"] svg { color: #88c8b8; }
+    .tool-item[data-tool="unit"].active { background: #88c8b8; }
+    #panel-unit .panel-header h2 svg { color: #88c8b8; }
+    #panel-unit .btn { background: #88c8b8; }
+    #panel-unit .btn:hover { background: #78b8a8; }
+
+    /* Lorem - rose */
+    .tool-item[data-tool="lorem"] svg { color: #d8a8b0; }
+    .tool-item[data-tool="lorem"].active { background: #d8a8b0; }
+    #panel-lorem .panel-header h2 svg { color: #d8a8b0; }
+    #panel-lorem .btn { background: #d8a8b0; }
+    #panel-lorem .btn:hover { background: #c898a0; }
+    #panel-lorem .btn-green { background: #c0d4b8; }
+    #panel-lorem .btn-green:hover { background: #b0c4a8; }
+
+    /* Regex - lavender */
+    .tool-item[data-tool="regex"] svg { color: #b0a8d8; }
+    .tool-item[data-tool="regex"].active { background: #b0a8d8; }
+    #panel-regex .panel-header h2 svg { color: #b0a8d8; }
+    #panel-regex .btn { background: #b0a8d8; }
+    #panel-regex .btn:hover { background: #a098c8; }
+
+    /* UUID - peach */
+    .tool-item[data-tool="uuid"] svg { color: #d8c090; }
+    .tool-item[data-tool="uuid"].active { background: #d8c090; }
+    #panel-uuid .panel-header h2 svg { color: #d8c090; }
+    #panel-uuid .btn { background: #d8c090; }
+    #panel-uuid .btn:hover { background: #c8b080; }
+    #panel-uuid .btn-green { background: #c0d4b8; }
+    #panel-uuid .btn-green:hover { background: #b0c4a8; }
+
+    /* Timestamp - sage */
+    .tool-item[data-tool="timestamp"] svg { color: #a8c8a0; }
+    .tool-item[data-tool="timestamp"].active { background: #a8c8a0; }
+    #panel-timestamp .panel-header h2 svg { color: #a8c8a0; }
+    #panel-timestamp .btn { background: #a8c8a0; }
+    #panel-timestamp .btn:hover { background: #98b890; }
+
+    /* Markdown - lilac */
+    .tool-item[data-tool="markdown"] svg { color: #c8a8d8; }
+    .tool-item[data-tool="markdown"].active { background: #c8a8d8; }
+    #panel-markdown .panel-header h2 svg { color: #c8a8d8; }
+    #panel-markdown .btn { background: #c8a8d8; }
+    #panel-markdown .btn:hover { background: #b898c8; }
+
+    /* Case - sky */
+    .tool-item[data-tool="case"] svg { color: #90b8d0; }
+    .tool-item[data-tool="case"].active { background: #90b8d0; }
+    #panel-case .panel-header h2 svg { color: #90b8d0; }
+    #panel-case .btn { background: #90b8d0; }
+    #panel-case .btn:hover { background: #80a8c0; }
+    #panel-case .btn-grid .btn:hover { background: #90b8d0; }
+
+    /* HTML - rose */
+    .tool-item[data-tool="html"] svg { color: #d0a0b0; }
+    .tool-item[data-tool="html"].active { background: #d0a0b0; }
+    #panel-html .panel-header h2 svg { color: #d0a0b0; }
+    #panel-html .btn { background: #d0a0b0; }
+    #panel-html .btn:hover { background: #c090a0; }
+    #panel-html .btn-green { background: #b8d4b8; }
+    #panel-html .btn-green:hover { background: #a8c4a8; }
+
+    /* Gradient - peach */
+    .tool-item[data-tool="gradient"] svg { color: #d8b898; }
+    .tool-item[data-tool="gradient"].active { background: #d8b898; }
+    #panel-gradient .panel-header h2 svg { color: #d8b898; }
+    #panel-gradient .btn { background: #d8b898; }
+    #panel-gradient .btn:hover { background: #c8a888; }
+    #panel-gradient .btn-green { background: #c0d4b8; }
+    #panel-gradient .btn-green:hover { background: #b0c4a8; }
+    #panel-gradient input[type="range"]::-webkit-slider-thumb { background: #d8b898; }
+
+    /* Timer - lavender */
+    .tool-item[data-tool="timer"] svg { color: #b8a8d0; }
+    .tool-item[data-tool="timer"].active { background: #b8a8d0; }
+    #panel-timer .panel-header h2 svg { color: #b8a8d0; }
+    #panel-timer .btn { background: #b8a8d0; }
+    #panel-timer .btn:hover { background: #a898c0; }
+
+    /* Notes - sage */
+    .tool-item[data-tool="notes"] svg { color: #a8c0a0; }
+    .tool-item[data-tool="notes"].active { background: #a8c0a0; }
+    #panel-notes .panel-header h2 svg { color: #a8c0a0; }
+    #panel-notes .btn-red { background: #d0a8a8; }
+    #panel-notes .btn-red:hover { background: #c09898; }
+
+    /* Diff - sky */
+    .tool-item[data-tool="diff"] svg { color: #98b8d0; }
+    .tool-item[data-tool="diff"].active { background: #98b8d0; }
+    #panel-diff .panel-header h2 svg { color: #98b8d0; }
+    #panel-diff .btn { background: #98b8d0; }
+    #panel-diff .btn:hover { background: #88a8c0; }
+
+    /* ASCII - coral */
+    .tool-item[data-tool="ascii"] svg { color: #e8a090; }
+    .tool-item[data-tool="ascii"].active { background: #e8a090; }
+    #panel-ascii .panel-header h2 svg { color: #e8a090; }
+    #panel-ascii .btn { background: #e8a090; }
+    #panel-ascii .btn:hover { background: #d89080; }
+    #panel-ascii .btn-green { background: #a8c8a0; }
+    #panel-ascii .btn-green:hover { background: #98b890; }
+    #panel-ascii input[type="range"]::-webkit-slider-thumb { background: #e8a090; }
+    #panel-ascii input[type="checkbox"] { accent-color: #e8a090; }
+
+    /* Number Base - tan */
+    .tool-item[data-tool="bases"] svg { color: #c0ae90; }
+    .tool-item[data-tool="bases"].active { background: #c0ae90; }
+    #panel-bases .panel-header h2 svg { color: #c0ae90; }
+    #panel-bases .btn { background: #c0ae90; }
+    #panel-bases .btn:hover { background: #b09e80; }
+    #panel-bases .base-btn.active { background: #c0ae90; border-color: #c0ae90; }
+
+    /* Pass Strength - pink */
+    .tool-item[data-tool="passcheck"] svg { color: #d4a0b8; }
+    .tool-item[data-tool="passcheck"].active { background: #d4a0b8; }
+    #panel-passcheck .panel-header h2 svg { color: #d4a0b8; }
+    #panel-passcheck .btn { background: #d4a0b8; }
+    #panel-passcheck .btn:hover { background: #c490a8; }
+
+    /* Box Shadow - steel */
+    .tool-item[data-tool="boxshadow"] svg { color: #98b8c8; }
+    .tool-item[data-tool="boxshadow"].active { background: #98b8c8; }
+    #panel-boxshadow .panel-header h2 svg { color: #98b8c8; }
+    #panel-boxshadow .btn { background: #98b8c8; }
+    #panel-boxshadow .btn:hover { background: #88a8b8; }
+    #panel-boxshadow .btn-green { background: #b8d4c0; }
+    #panel-boxshadow .btn-green:hover { background: #a8c4b0; }
+    #panel-boxshadow input[type="range"]::-webkit-slider-thumb { background: #98b8c8; }
+
+    /* HTML Preview - cream */
+    .tool-item[data-tool="htmlpreview"] svg { color: #c8b898; }
+    .tool-item[data-tool="htmlpreview"].active { background: #c8b898; }
+    #panel-htmlpreview .panel-header h2 svg { color: #c8b898; }
+    #panel-htmlpreview .btn { background: #c8b898; }
+    #panel-htmlpreview .btn:hover { background: #b8a888; }
+
+    /* Find & Replace - teal */
+    .tool-item[data-tool="findreplace"] svg { color: #98c0b8; }
+    .tool-item[data-tool="findreplace"].active { background: #98c0b8; }
+    #panel-findreplace .panel-header h2 svg { color: #98c0b8; }
+    #panel-findreplace .btn { background: #98c0b8; }
+    #panel-findreplace .btn:hover { background: #88b0a8; }
+    #panel-findreplace .btn-green { background: #b8d0b8; }
+    #panel-findreplace .btn-green:hover { background: #a8c0a8; }
+
+    /* Random - mauve */
+    .tool-item[data-tool="random"] svg { color: #c8a8b8; }
+    .tool-item[data-tool="random"].active { background: #c8a8b8; }
+    #panel-random .panel-header h2 svg { color: #c8a8b8; }
+    #panel-random .btn { background: #c8a8b8; }
+    #panel-random .btn:hover { background: #b898a8; }
+    #panel-random .btn-green { background: #b8d4b8; }
+    #panel-random .btn-green:hover { background: #a8c4a8; }
+
+    /* PDF - terracotta */
+    .tool-item[data-tool="pdf"] svg { color: #d49888; }
+    .tool-item[data-tool="pdf"].active { background: #d49888; }
+    #panel-pdf .panel-header h2 svg { color: #d49888; }
+    #panel-pdf .btn { background: #d49888; }
+    #panel-pdf .btn:hover { background: #c48878; }
+    #panel-pdf .btn-green { background: #b8d4b8; }
+    #panel-pdf .btn-green:hover { background: #a8c4a8; }
+    #panel-pdf input[type="range"]::-webkit-slider-thumb { background: #d49888; }
+    #panel-pdf .progress-bar { background: #d49888; }
+
+    /* Delphi.tools inspired visual theme */
+    :root {
+      --bg: #faf9f5;
+      --surface: #fffdf8;
+      --surface-strong: #ffffff;
+      --ink: #27211b;
+      --muted: #766d62;
+      --line: #dfd7cb;
+      --line-strong: #2f271f;
+      --accent: #b18100;
+      --accent-soft: #f5e7c2;
+      --accent-hover: #946b00;
+      --danger: #b4492f;
+      --radius: 8px;
+      --shadow: 0 1px 0 rgba(47, 39, 31, 0.06), 0 10px 26px rgba(47, 39, 31, 0.06);
+      --grid-color: rgba(47,39,31,.035);
+      --grid-line: rgba(47,39,31,.03);
+      --tool-hover: #f0ebe2;
+      --range-bg: #eee7dc;
+      --output-code: #888;
+      --arrow-faint: #ccc;
+      --error: #d49888;
+      --dropzone-bg: rgba(255,253,248,.72);
+      --dropzone-border: #d8c8b8;
+      --dropzone-hover-border: #e8a090;
+      --dropzone-hover-bg: #fdf8f5;
+      --timer-shadow: #eadfce;
+      --ascii-bg: #111;
+      --ascii-color: #fff;
+      --progress-bg: #eee7dc;
+    }
+
+    body.dark {
+      --bg: #1a1917;
+      --surface: #242320;
+      --surface-strong: #2e2c28;
+      --ink: #e8e2da;
+      --muted: #a09888;
+      --line: #3a3530;
+      --line-strong: #5a5248;
+      --accent: #d4a020;
+      --accent-soft: #3d3018;
+      --accent-hover: #e6b030;
+      --danger: #d06048;
+      --shadow: 0 1px 0 rgba(0,0,0,.2), 0 10px 26px rgba(0,0,0,.25);
+      --grid-color: rgba(255,255,255,.04);
+      --grid-line: rgba(255,255,255,.03);
+      --tool-hover: #2e2a24;
+      --range-bg: #33302c;
+      --output-code: #a09888;
+      --arrow-faint: #666;
+      --error: #e88878;
+      --dropzone-bg: rgba(36,35,32,.72);
+      --dropzone-border: #5a5040;
+      --dropzone-hover-border: #e8a090;
+      --dropzone-hover-bg: #2a2520;
+      --timer-shadow: #2a2520;
+      --ascii-bg: #000;
+      --ascii-color: #e8e2da;
+      --progress-bg: #33302c;
+    }
+
+    body {
+      font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background:
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    .sidebar {
+      width: 256px;
+      background: color-mix(in srgb, var(--surface) 96%, transparent);
+      border-right: 1px solid var(--line);
+      box-shadow: 1px 0 0 var(--grid-color);
+    }
+
+    .sidebar-header {
+      padding: 10px 10px 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .sidebar-header h1 {
+      min-height: 48px;
+      padding: 8px;
+      border-radius: var(--radius);
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .sidebar-header h1 svg {
+      width: 34px;
+      height: 34px;
+      padding: 7px;
+      border: 2px solid #276437;
+      border-radius: var(--radius);
+      background: #dff0c7;
+      color: #276437;
+    }
+
+    .sidebar-header p {
+      margin: 2px 8px 0;
+      color: var(--muted);
+      font-size: .72rem;
+    }
+
+    .brand-ascii {
+      display: block;
+      width: 35ch;
+      max-width: 100%;
+      margin: 4px auto 10px;
+      padding: 0;
+      border: none;
+      border-radius: 0;
+      background: transparent;
+      color: var(--ink);
+      font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 6px;
+      font-weight: 700;
+      line-height: 6px;
+      letter-spacing: 0;
+      white-space: pre;
+      user-select: none;
+    }
+
+    .tool-list {
+      padding: 8px;
+      gap: 4px;
+      overflow-y: auto;
+    }
+
+    .tool-section { margin-bottom: 4px; }
+    .tool-section-title {
+      display: flex;
+      align-items: center;
+      height: 28px;
+      padding: 10px 8px 2px;
+      color: color-mix(in srgb, var(--ink) 55%, transparent);
+      font-size: .65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      user-select: none;
+    }
+
+    .tool-item {
+      min-height: 32px;
+      padding: 7px 8px;
+      margin: 0 0 2px;
+      gap: 8px;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      color: var(--ink);
+      user-select: none;
+      transition: background-color .12s ease, color .12s ease, transform .12s ease;
+    }
+
+    .tool-item:hover {
+      background: var(--tool-hover);
+      transform: translateX(1px);
+    }
+
+    .tool-item svg {
+      width: 16px;
+      height: 16px;
+      color: currentColor !important;
+      opacity: .78;
+    }
+
+    .tool-name {
+      font-size: .79rem;
+      font-weight: 600;
+    }
+
+    .tool-desc {
+      color: var(--muted);
+      font-size: .66rem;
+    }
+
+    .tool-item.active,
+    .tool-item[data-tool].active {
+      background: var(--accent-soft);
+      border-color: var(--accent-soft);
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .tool-item.active .tool-desc {
+      color: color-mix(in srgb, var(--accent) 72%, transparent);
+    }
+
+    .sidebar-footer {
+      display: none;
+    }
+
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      transition: background-color .12s, color .12s, border-color .12s;
+    }
+
+    .theme-toggle:hover {
+      background: var(--tool-hover);
+      color: var(--ink);
+      border-color: var(--line-strong);
+    }
+
+    .theme-toggle svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .sidebar-search {
+      position: relative;
+      padding: 8px 10px;
+    }
+
+    .sidebar-search > i:first-child,
+    .sidebar-search > svg:first-child {
+      position: absolute;
+      left: 18px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .sidebar-search input {
+      width: 100%;
+      padding: 7px 10px 7px 32px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      font-family: inherit;
+      font-size: .78rem;
+      box-shadow: 0 1px 0 var(--grid-line);
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .sidebar-search input::placeholder {
+      color: var(--muted);
+      opacity: .72;
+    }
+
+    .sidebar-search input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+
+    .search-toggle {
+      display: none;
+    }
+
+    .tool-item.hidden {
+      display: none !important;
+    }
+
+    .main {
+      max-width: 960px;
+      margin-left: 256px;
+      padding: 40px 40px 56px;
+    }
+
+    .tool-panel.active {
+      animation: fadeIn .16s ease;
+    }
+
+    .panel-header {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      gap: 14px;
+      align-items: start;
+      margin-bottom: 26px;
+    }
+
+    .panel-header h2 {
+      display: contents;
+      font-size: 1.5rem;
+      line-height: 1.2;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .panel-header h2 svg {
+      grid-row: 1 / span 2;
+      width: 56px;
+      height: 56px;
+      padding: 13px;
+      border-radius: 12px;
+      background: var(--accent-soft);
+      color: var(--accent) !important;
+    }
+
+    .panel-header p {
+      grid-column: 2;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+
+    .back-btn {
+      grid-column: 1 / -1;
+      width: fit-content;
+      color: var(--muted);
+    }
+
+    label {
+      margin: 16px 0 7px;
+      color: var(--ink);
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    textarea,
+    select,
+    input[type="file"] {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--ink);
+      box-shadow: 0 1px 0 var(--grid-line);
+      font-family: inherit;
+      font-size: .86rem;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+    }
+
+    textarea {
+      min-height: 112px;
+      line-height: 1.55;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
+    }
+
+    input[type="color"] {
+      border: 1px solid var(--line) !important;
+      border-radius: var(--radius) !important;
+      background: var(--surface);
+    }
+
+    .btn,
+    .base-btn {
+      min-height: 36px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--ink) !important;
+      color: var(--surface);
+      box-shadow: 0 2px 0 var(--line-strong);
+      font-family: inherit;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    .btn:hover,
+    .base-btn:hover,
+    .btn-grid .btn:hover {
+      background: var(--accent) !important;
+      color: var(--surface);
+      transform: translateY(-1px);
+    }
+
+    .btn:active,
+    .base-btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 0 var(--line-strong);
+    }
+
+    .btn-green {
+      background: #276437 !important;
+    }
+
+    .btn-red {
+      background: var(--danger) !important;
+    }
+
+    .btn-grid {
+      grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+      gap: 8px;
+    }
+
+    .btn-grid .btn {
+      background: var(--surface) !important;
+      color: var(--ink);
+    }
+
+    .output,
+    .shadow-box,
+    .str-meter,
+    #grad-preview {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      box-shadow: var(--shadow);
+    }
+
+    .output {
+      padding: 14px;
+      color: var(--ink);
+      font-size: .84rem;
+    }
+
+    hr {
+      border-top-color: var(--line);
+    }
+
+    input[type="range"] {
+      height: 8px;
+      border: 1px solid var(--line);
+      background: var(--range-bg);
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--line-strong);
+      background: var(--accent) !important;
+      box-shadow: 0 1px 0 var(--grid-color);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--accent) !important;
+    }
+
+    .base-btn {
+      background: var(--surface) !important;
+      color: var(--ink);
+    }
+
+    .base-btn.active {
+      border-color: var(--line-strong) !important;
+      background: var(--accent-soft) !important;
+      color: var(--accent);
+    }
+
+    .progress,
+    .str-meter {
+      background: var(--progress-bg);
+    }
+
+    .progress-bar,
+    .str-bar {
+      background: var(--accent) !important;
+    }
+
+    .timer-display {
+      color: var(--ink);
+      text-shadow: 0 2px 0 var(--timer-shadow);
+    }
+
+    #ascii-dropzone {
+      border-color: var(--line-strong) !important;
+      background: var(--dropzone-bg);
+      color: var(--muted) !important;
+      border-radius: var(--radius) !important;
+    }
+
+    #ascii-dropzone.drag-over {
+      border-color: var(--dropzone-hover-border) !important;
+      background: var(--dropzone-hover-bg) !important;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        display: block;
+      }
+
+      .sidebar-search {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+      }
+
+      .sidebar-search > i:first-child,
+      .sidebar-search > svg:first-child {
+        display: none;
+      }
+
+      .search-toggle {
+        display: none;
+      }
+
+      .sidebar-search input {
+        display: block;
+        padding-left: 10px;
+      }
+
+      .sidebar {
+        width: 100%;
+        max-height: none;
+        position: sticky;
+        top: 0;
+        overflow: visible;
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+        z-index: 20;
+      }
+
+      .tool-list {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 8px;
+        scrollbar-width: thin;
+      }
+
+      .tool-list.searching {
+        display: block;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .tool-section { display: contents; }
+
+      .tool-list.searching .tool-section { display: block; }
+
+      .brand-ascii {
+        display: none;
+      }
+
+      .tool-list::before {
+        display: none;
+      }
+
+      .tool-section-title { display: none; }
+
+      .tool-list.searching .tool-section-title { display: flex; }
+
+      .tool-item {
+        flex: 0 0 auto;
+        min-height: 36px;
+        padding: 8px 12px;
+      }
+
+      .tool-item .tool-desc {
+        display: none;
+      }
+
+      .tool-item .tool-name {
+        font-size: .78rem;
+        white-space: nowrap;
+      }
+
+      .main {
+        margin-left: 0;
+        width: 100%;
+        max-width: 100%;
+        padding: 24px 16px 40px;
+        overflow-x: hidden;
+      }
+
+      .panel-header {
+        grid-template-columns: 46px 1fr;
+      }
+
+      .back-btn {
+        display: none;
+      }
+
+      .panel-header h2 {
+        font-size: 1.25rem;
+      }
+
+      .panel-header p {
+        overflow-wrap: anywhere;
+      }
+
+      .panel-header h2 svg {
+        width: 46px;
+        height: 46px;
+        padding: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <pre class="brand-ascii" aria-hidden="true">$ $                       $$$      
+ $ $ $ $               $ $ $       
+$ $ $$$ $ $ $$$$$$$$$$$ $$$        
+ $ $ $ $$$ $$$ $$$ $ $ $$$         
+  $$$$$$$$$$$$$$$$$$$$$$$$$$$      
+   $       $ $$$$$$$ $     $       
+  $$$       $$$$$$$$$$$     $      
+ $ $ $     $ $ $$$ $$$ $     $     
+ $$$$$$$$$$$$$$$$$$$$$$$$$$$$$     
+ $$$ $$$$$$$$$$$ $ $ $ $ $ $ $     
+ $$$$$$$$$$$$$$ $ $ $ $ $ $$$$     
+ $ $ $ $$$ $$$$$         $ $ $     
+$$$$$$$$$$$$$$$$$ $   $ $ $$$$$    
+ $$$ $$$ $ $ $ $ $ $   $   $ $ $ $$
+$$$$$$$$$$$ $ $ $ $ $ $ $ $ $     $
+$$ $$$ $$$ $ $                   $$
+$$$$$$$$$$$$$ $ $ $ $ $ $ $      $$
+$$$$ $ $ $ $ $ $   $   $         </pre>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <h1>miyu-herramientas</h1>
+        <button class="theme-toggle" id="theme-toggle" title="Cambiar tema" aria-label="Cambiar tema"><i data-lucide="moon"></i></button>
+      </div>
+      <p>Herramientas</p>
+    </div>
+    <div class="sidebar-search">
+      <i data-lucide="search"></i>
+      <input type="text" id="sidebar-search" placeholder="Buscar herramienta..." autocomplete="off">
+    </div>
+    <div class="tool-list">
+      <div class="tool-section" data-section="texto">
+        <div class="tool-section-title">Texto</div>
+        <div class="tool-item active" data-tool="text"><i data-lucide="text"></i><div class="tool-info"><div class="tool-name">Transformar Texto</div><div class="tool-desc">Transforma texto</div></div></div>
+        <div class="tool-item" data-tool="findreplace"><i data-lucide="search"></i><div class="tool-info"><div class="tool-name">Buscar y Reemplazar</div><div class="tool-desc">Encuentra y reemplaza texto</div></div></div>
+        <div class="tool-item" data-tool="lorem"><i data-lucide="file-text"></i><div class="tool-info"><div class="tool-name">Lorem Ipsum</div><div class="tool-desc">Texto de prueba</div></div></div>
+        <div class="tool-item" data-tool="markdown"><i data-lucide="file-text"></i><div class="tool-info"><div class="tool-name">Markdown</div><div class="tool-desc">Vista previa MD</div></div></div>
+        <div class="tool-item" data-tool="case"><i data-lucide="case-sensitive"></i><div class="tool-info"><div class="tool-name">Casos</div><div class="tool-desc">Convierte nomenclatura</div></div></div>
+        <div class="tool-item" data-tool="diff"><i data-lucide="git-compare"></i><div class="tool-info"><div class="tool-name">Comparar</div><div class="tool-desc">Compara textos</div></div></div>
+        <div class="tool-item" data-tool="password"><i data-lucide="lock"></i><div class="tool-info"><div class="tool-name">Contraseñas</div><div class="tool-desc">Genera contraseñas seguras</div></div></div>
+        <div class="tool-item" data-tool="passcheck"><i data-lucide="shield"></i><div class="tool-info"><div class="tool-name">Fortaleza</div><div class="tool-desc">Evalúa contraseñas</div></div></div>
+      </div>
+      <div class="tool-section" data-section="imagen">
+        <div class="tool-section-title">Imagen</div>
+        <div class="tool-item" data-tool="qr"><i data-lucide="qrcode"></i><div class="tool-info"><div class="tool-name">Código QR</div><div class="tool-desc">Genera códigos QR</div></div></div>
+        <div class="tool-item" data-tool="image"><i data-lucide="image"></i><div class="tool-info"><div class="tool-name">Imagen Base64</div><div class="tool-desc">Convierte a Base64</div></div></div>
+        <div class="tool-item" data-tool="ascii"><i data-lucide="image"></i><div class="tool-info"><div class="tool-name">ASCII</div><div class="tool-desc">Imagen a arte ASCII</div></div></div>
+      </div>
+      <div class="tool-section" data-section="codigo">
+        <div class="tool-section-title">Código / Datos</div>
+        <div class="tool-item" data-tool="json"><i data-lucide="braces"></i><div class="tool-info"><div class="tool-name">JSON</div><div class="tool-desc">Formatea y minifica</div></div></div>
+        <div class="tool-item" data-tool="html"><i data-lucide="code"></i><div class="tool-info"><div class="tool-name">HTML Escape</div><div class="tool-desc">Escapa caracteres</div></div></div>
+        <div class="tool-item" data-tool="htmlpreview"><i data-lucide="monitor"></i><div class="tool-info"><div class="tool-name">HTML Preview</div><div class="tool-desc">Vista previa HTML</div></div></div>
+        <div class="tool-item" data-tool="regex"><i data-lucide="search"></i><div class="tool-info"><div class="tool-name">Regex</div><div class="tool-desc">Expresiones regulares</div></div></div>
+        <div class="tool-item" data-tool="hash"><i data-lucide="fingerprint"></i><div class="tool-info"><div class="tool-name">Hash</div><div class="tool-desc">SHA-1 SHA-256 SHA-512</div></div></div>
+        <div class="tool-item" data-tool="uuid"><i data-lucide="hash"></i><div class="tool-info"><div class="tool-name">UUID</div><div class="tool-desc">Identificadores únicos</div></div></div>
+        <div class="tool-item" data-tool="bases"><i data-lucide="divide"></i><div class="tool-info"><div class="tool-name">Bases Numéricas</div><div class="tool-desc">Bin/Oct/Dec/Hex</div></div></div>
+        <div class="tool-item" data-tool="ffmpeg"><i data-lucide="video"></i><div class="tool-info"><div class="tool-name">FFmpeg</div><div class="tool-desc">Comandos ffmpeg</div></div></div>
+      </div>
+      <div class="tool-section" data-section="css">
+        <div class="tool-section-title">CSS / Diseño</div>
+        <div class="tool-item" data-tool="color"><i data-lucide="palette"></i><div class="tool-info"><div class="tool-name">Colores</div><div class="tool-desc">Conversor HEX RGB HSL</div></div></div>
+        <div class="tool-item" data-tool="gradient"><i data-lucide="droplets"></i><div class="tool-info"><div class="tool-name">Gradientes</div><div class="tool-desc">Gradientes CSS</div></div></div>
+        <div class="tool-item" data-tool="boxshadow"><i data-lucide="square"></i><div class="tool-info"><div class="tool-name">Box Shadow</div><div class="tool-desc">Genera sombras CSS</div></div></div>
+      </div>
+      <div class="tool-section" data-section="utilidades">
+        <div class="tool-section-title">Tiempo / Utilidades</div>
+        <div class="tool-item" data-tool="unit"><i data-lucide="ruler"></i><div class="tool-info"><div class="tool-name">Unidades</div><div class="tool-desc">Conversor</div></div></div>
+        <div class="tool-item" data-tool="random"><i data-lucide="dice"></i><div class="tool-info"><div class="tool-name">Aleatorios</div><div class="tool-desc">Números aleatorios</div></div></div>
+        <div class="tool-item" data-tool="timestamp"><i data-lucide="clock"></i><div class="tool-info"><div class="tool-name">Timestamp</div><div class="tool-desc">Fecha y timestamp</div></div></div>
+        <div class="tool-item" data-tool="timer"><i data-lucide="timer"></i><div class="tool-info"><div class="tool-name">Cronómetro</div><div class="tool-desc">Crono y cuenta atrás</div></div></div>
+        <div class="tool-item" data-tool="notes"><i data-lucide="notebook"></i><div class="tool-info"><div class="tool-name">Notas</div><div class="tool-desc">Notas guardadas</div></div></div>
+      </div>
+      <div class="tool-section" data-section="archivos">
+        <div class="tool-section-title">Archivos</div>
+        <div class="tool-item" data-tool="pdf"><i data-lucide="archive"></i><div class="tool-info"><div class="tool-name">PDF</div><div class="tool-desc">Comprime PDFs</div></div></div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="app-header">
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menú"><i data-lucide="panel-left"></i></button>
+      <div class="app-header-title" id="app-header-title">Código QR</div>
+    </div>
+    <div class="tool-panel" id="panel-qr">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="qrcode"></i> Código QR</h2>
+        <p>Crea códigos QR para enlaces, texto o información de contacto</p>
+      </div>
+      <label>Texto o URL</label>
+      <input type="text" id="qr-text" placeholder="https://ejemplo.com">
+      <label>Tamaño</label>
+      <select id="qr-size"><option value="200">Pequeño (200px)</option><option value="300" selected>Mediano (300px)</option><option value="500">Grande (500px)</option></select>
+      <div class="btn-row">
+        <button class="btn" onclick="generateQR()"><i data-lucide="qrcode"></i> Generar QR</button>
+        <button class="btn btn-green" onclick="downloadQR()"><i data-lucide="download"></i> Descargar PNG</button>
+      </div>
+      <div class="output" id="qr-output"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-password">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="lock"></i> Contraseñas Seguras</h2>
+        <p>Genera contraseñas robustas con la longitud y caracteres que necesites</p>
+      </div>
+      <label>Longitud: <span id="pwd-len-val">16</span></label>
+      <input type="range" id="pwd-len" min="6" max="64" value="16" oninput="document.getElementById('pwd-len-val').textContent=this.value">
+      <div class="checkbox-row"><input type="checkbox" id="pwd-upper" checked><label for="pwd-upper">Mayúsculas (A-Z)</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="pwd-numbers" checked><label for="pwd-numbers">Números (0-9)</label></div>
+      <div class="checkbox-row"><input type="checkbox" id="pwd-symbols" checked><label for="pwd-symbols">Símbolos (!@#$%)</label></div>
+      <div class="btn-row">
+        <button class="btn" onclick="generatePassword()"><i data-lucide="refresh-cw"></i> Generar</button>
+        <button class="btn btn-green" onclick="copyPassword()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <div class="output" id="pwd-output"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-passcheck">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="shield"></i> Fortaleza de Contraseña</h2>
+        <p>Evalúa qué tan segura es una contraseña en tiempo real</p>
+      </div>
+      <label>Escribe una contraseña</label>
+      <input type="password" id="passcheck-input" placeholder="Escribe una contraseña..." oninput="checkStrength()">
+      <div class="str-meter"><div class="str-bar" id="str-bar"></div></div>
+      <div class="output" id="passcheck-output" style="font-weight:600"></div>
+    </div>
+
+    <div class="tool-panel active" id="panel-text">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="text"></i> Transformar Texto</h2>
+        <p>Convierte texto a mayúsculas, minúsculas, codifica en Base64 y más</p>
+      </div>
+      <textarea id="text-input" placeholder="Escribe o pega tu texto aquí..."></textarea>
+      <div class="btn-grid">
+        <button class="btn" onclick="textTransform('upper')">MAYÚSCULAS</button>
+        <button class="btn" onclick="textTransform('lower')">minúsculas</button>
+        <button class="btn" onclick="textTransform('title')">Título</button>
+        <button class="btn" onclick="textTransform('trim')">Limpiar</button>
+        <button class="btn" onclick="textTransform('base64enc')">Base64</button>
+        <button class="btn" onclick="textTransform('base64dec')">Decode</button>
+        <button class="btn" onclick="textTransform('urlenc')">URL Enc</button>
+        <button class="btn" onclick="textTransform('urldec')">URL Dec</button>
+        <button class="btn" onclick="textTransform('reverse')">Invertir</button>
+      </div>
+      <div class="output" id="text-stats"></div>
+      <textarea id="text-output" readonly style="margin-top:10px" placeholder="Resultado..."></textarea>
+    </div>
+
+    <div class="tool-panel" id="panel-findreplace">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="search"></i> Buscar y Reemplazar</h2>
+        <p>Encuentra palabras o frases en un texto y sustitúyelas fácilmente</p>
+      </div>
+      <textarea id="fr-input" placeholder="Escribe o pega el texto original aquí..."></textarea>
+      <label>Buscar</label>
+      <input type="text" id="fr-find" placeholder="Texto a buscar">
+      <label>Reemplazar con</label>
+      <input type="text" id="fr-replace" placeholder="Texto de reemplazo">
+      <div class="checkbox-row"><input type="checkbox" id="fr-casesens"><label for="fr-casesens">Distinguir mayúsculas</label></div>
+      <div class="btn-row">
+        <button class="btn" onclick="findReplace()"><i data-lucide="search"></i> Reemplazar todo</button>
+        <button class="btn btn-green" onclick="copyFR()"><i data-lucide="copy"></i> Copiar resultado</button>
+      </div>
+      <textarea id="fr-output" readonly style="margin-top:10px" placeholder="Resultado..."></textarea>
+    </div>
+
+    <div class="tool-panel" id="panel-json">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="braces"></i> Formateador JSON</h2>
+        <p>Da formato legible o minifica datos JSON con un clic</p>
+      </div>
+      <textarea id="json-input" placeholder='{"nombre": "ejemplo", "valor": 123}'></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="formatJSON()"><i data-lucide="align-left"></i> Formatear</button>
+        <button class="btn" onclick="minifyJSON()"><i data-lucide="minimize"></i> Minificar</button>
+        <button class="btn btn-green" onclick="copyJSON()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <textarea id="json-output" readonly style="margin-top:10px; font-family:monospace" placeholder="JSON formateado..."></textarea>
+    </div>
+
+    <div class="tool-panel" id="panel-bases">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="divide"></i> Conversor de Bases Numéricas</h2>
+        <p>Convierte números entre binario, octal, decimal y hexadecimal</p>
+      </div>
+      <label>Valor</label>
+      <input type="text" id="base-input" placeholder="Ej: 255" oninput="convertBase()">
+      <label>Base de entrada</label>
+      <div class="base-group" id="base-group">
+        <button class="base-btn active" data-base="10" onclick="setBase(10)">Decimal</button>
+        <button class="base-btn" data-base="2" onclick="setBase(2)">Binario</button>
+        <button class="base-btn" data-base="8" onclick="setBase(8)">Octal</button>
+        <button class="base-btn" data-base="16" onclick="setBase(16)">Hexadecimal</button>
+      </div>
+      <div class="output" id="base-output" style="font-family:monospace;font-size:0.95rem"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-color">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="palette"></i> Conversor de Colores</h2>
+        <p>Selecciona un color y obtén sus valores en HEX, RGB y HSL</p>
+      </div>
+      <label>Selecciona un color</label>
+      <input type="color" id="color-picker" value="#8bb8d4" oninput="convertColor()" style="width:100%;height:55px;cursor:pointer;border-radius:12px;border:1.5px solid var(--line)">
+      <div class="output" id="color-output"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-boxshadow">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="square"></i> Generador de Box Shadow</h2>
+        <p>Crea sombras CSS personalizadas con una vista previa interactiva</p>
+      </div>
+      <div class="shadow-box" id="shadow-box"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+        <div><label>X: <span id="sx-val">4</span>px</label><input type="range" id="sx" min="-20" max="20" value="4" oninput="updateShadow()"></div>
+        <div><label>Y: <span id="sy-val">4</span>px</label><input type="range" id="sy" min="-20" max="20" value="4" oninput="updateShadow()"></div>
+        <div><label>Blur: <span id="sblur-val">10</span>px</label><input type="range" id="sblur" min="0" max="40" value="10" oninput="updateShadow()"></div>
+        <div><label>Spread: <span id="sspread-val">0</span>px</label><input type="range" id="sspread" min="-10" max="20" value="0" oninput="updateShadow()"></div>
+      </div>
+      <label style="margin-top:8px">Color de sombra</label>
+      <input type="color" id="scolor" value="#c8b8a8" oninput="updateShadow()">
+      <div class="output" id="shadow-css" style="font-family:monospace;font-size:0.85rem"></div>
+      <button class="btn btn-green" onclick="copyShadow()"><i data-lucide="copy"></i> Copiar CSS</button>
+    </div>
+
+    <div class="tool-panel" id="panel-image">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="image"></i> Imagen a Base64</h2>
+        <p>Convierte imágenes a código Base64 para embeber en HTML o CSS</p>
+      </div>
+      <input type="file" id="img-file" accept="image/*" onchange="imageToBase64()">
+      <div class="output" id="img-output"></div>
+      <div class="btn-row"><button class="btn btn-green" onclick="copyImgBase64()"><i data-lucide="copy"></i> Copiar Base64</button></div>
+    </div>
+
+    <div class="tool-panel" id="panel-htmlpreview">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="monitor"></i> Vista Previa HTML</h2>
+        <p>Escribe código HTML y ve el resultado renderizado al instante</p>
+      </div>
+      <textarea id="htmlpreview-input" placeholder="<h1>Hola mundo</h1><p>Esto es un párrafo</p>"></textarea>
+      <div class="btn-row"><button class="btn" onclick="renderHTMLPreview()"><i data-lucide="eye"></i> Ver resultado</button></div>
+      <div class="output" id="htmlpreview-output" style="padding:0;overflow:hidden;min-height:150px"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-ffmpeg">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="video"></i> Comandos FFmpeg</h2>
+        <p>Genera comandos para convertir video, audio, crear GIFs y más</p>
+      </div>
+      <label>Archivo de entrada</label>
+      <input type="text" id="ff-input" placeholder="video.mp4">
+      <label>Conversión</label>
+      <select id="ff-preset">
+        <option value="mp3">Video a MP3</option><option value="gif">Video a GIF</option>
+        <option value="webm">Video a WebM</option><option value="compress">Comprimir video</option>
+        <option value="thumbnail">Extraer thumbnail</option><option value="trim">Recortar tiempo</option>
+        <option value="resize">Redimensionar</option><option value="audio-compress">Comprimir audio</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      <div id="ff-extra" style="display:none"><label id="ff-extra-label">Parámetro extra</label><input type="text" id="ff-extra-value" placeholder=""></div>
+      <label>Archivo de salida</label>
+      <input type="text" id="ff-output" placeholder="resultado.mp4">
+      <div class="btn-row">
+        <button class="btn" onclick="generateFFmpeg()"><i data-lucide="terminal"></i> Generar</button>
+        <button class="btn btn-green" onclick="copyFFmpeg()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <div class="output" id="ff-result" style="font-family:monospace;font-size:0.85rem"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-hash">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="fingerprint"></i> Generador de Hash</h2>
+        <p>Calcula hashes SHA-1, SHA-256 y SHA-512 de cualquier texto</p>
+      </div>
+      <textarea id="hash-input" placeholder="Escribe el texto para generar sus hashes..."></textarea>
+      <button class="btn" onclick="generateHash()"><i data-lucide="fingerprint"></i> Calcular Hashes</button>
+      <div class="output" id="hash-output" style="font-family:monospace;font-size:0.82rem"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-unit">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="ruler"></i> Conversor de Unidades</h2>
+        <p>Convierte entre unidades CSS, tamaños de archivo y temperaturas</p>
+      </div>
+      <label>Valor</label>
+      <input type="number" id="unit-value" placeholder="100">
+      <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
+        <select id="unit-from" style="flex:1"><option value="px">px</option><option value="rem">rem</option><option value="em">em</option><option value="pt">pt</option><option value="kb">KB</option><option value="mb">MB</option><option value="gb">GB</option><option value="celsius">°C</option><option value="fahrenheit">°F</option></select>
+        <span style="color:var(--arrow-faint)">→</span>
+        <select id="unit-to" style="flex:1"><option value="rem">rem</option><option value="px">px</option><option value="em">em</option><option value="pt">pt</option><option value="kb">KB</option><option value="mb">MB</option><option value="gb">GB</option><option value="celsius">°C</option><option value="fahrenheit">°F</option></select>
+      </div>
+      <button class="btn" onclick="convertUnit()"><i data-lucide="arrow-right-left"></i> Convertir</button>
+      <div class="output" id="unit-output"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-random">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="dice"></i> Generador de Números Aleatorios</h2>
+        <p>Genera números aleatorios dentro de un rango, ideales para sorteos o decisiones</p>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div><label>Mínimo</label><input type="number" id="rand-min" value="1"></div>
+        <div><label>Máximo</label><input type="number" id="rand-max" value="100"></div>
+      </div>
+      <label>Cantidad de números</label>
+      <input type="number" id="rand-count" value="5" min="1" max="50">
+      <div class="btn-row">
+        <button class="btn" onclick="generateRandom()"><i data-lucide="dice"></i> Generar</button>
+        <button class="btn btn-green" onclick="copyRandom()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <div class="output" id="rand-output" style="font-size:1.1rem;font-weight:600"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-lorem">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="file-text"></i> Lorem Ipsum</h2>
+        <p>Genera texto de prueba en español para mockups y diseño</p>
+      </div>
+      <label>Número de párrafos</label>
+      <input type="number" id="lorem-count" value="3" min="1" max="20">
+      <div class="btn-row">
+        <button class="btn" onclick="generateLorem()"><i data-lucide="refresh-cw"></i> Generar</button>
+        <button class="btn btn-green" onclick="copyLorem()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <div class="output" id="lorem-output" style="max-height:300px;overflow-y:auto"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-regex">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="search"></i> Probador de Regex</h2>
+        <p>Testea patrones de expresiones regulares contra texto real</p>
+      </div>
+      <label>Patrón</label>
+      <input type="text" id="regex-pattern" placeholder="[a-z]+">
+      <label>Flags</label>
+      <input type="text" id="regex-flags" value="gi" placeholder="gi">
+      <label>Texto de prueba</label>
+      <textarea id="regex-text" placeholder="Escribe el texto para probar..."></textarea>
+      <button class="btn" onclick="testRegex()"><i data-lucide="search"></i> Probar patrón</button>
+      <div class="output" id="regex-output" style="font-family:monospace;font-size:0.85rem"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-uuid">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="hash"></i> Generador UUID</h2>
+        <p>Crea identificadores únicos universales (UUID v4)</p>
+      </div>
+      <label>Cantidad</label>
+      <input type="number" id="uuid-count" value="5" min="1" max="50">
+      <div class="btn-row">
+        <button class="btn" onclick="generateUUID()"><i data-lucide="refresh-cw"></i> Generar</button>
+        <button class="btn btn-green" onclick="copyUUID()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <div class="output" id="uuid-output" style="font-family:monospace;font-size:0.85rem"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-timestamp">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="clock"></i> Timestamp / Fecha</h2>
+        <p>Convierte entre timestamps epoch y fechas legibles</p>
+      </div>
+      <label>Timestamp (epoch)</label>
+      <input type="number" id="ts-input" placeholder="1700000000">
+      <button class="btn" onclick="tsToDate()"><i data-lucide="arrow-right"></i> A Fecha</button>
+      <label style="margin-top:14px">O escribe fecha</label>
+      <input type="text" id="date-input" placeholder="2024-01-15 10:30:00">
+      <button class="btn" onclick="dateToTs()"><i data-lucide="arrow-right"></i> A Timestamp</button>
+      <div class="output" id="ts-output" style="font-family:monospace"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-markdown">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="file-text"></i> Vista Previa Markdown</h2>
+        <p>Escribe markdown y ve el resultado renderizado al instante</p>
+      </div>
+      <textarea id="md-input" placeholder="# Título&#10;**negrita** *cursiva*"></textarea>
+      <button class="btn" onclick="renderMarkdown()"><i data-lucide="eye"></i> Ver resultado</button>
+      <div class="output" id="md-output" style="line-height:1.7"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-case">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="case-sensitive"></i> Conversor de Casos</h2>
+        <p>Convierte texto entre diferentes formatos de nomenclatura</p>
+      </div>
+      <textarea id="case-input" placeholder="Escribe texto aquí..."></textarea>
+      <div class="btn-grid" style="grid-template-columns:repeat(4,1fr)">
+        <button class="btn" onclick="convertCase('camel')">camelCase</button>
+        <button class="btn" onclick="convertCase('snake')">snake_case</button>
+        <button class="btn" onclick="convertCase('kebab')">kebab-case</button>
+        <button class="btn" onclick="convertCase('pascal')">PascalCase</button>
+        <button class="btn" onclick="convertCase('upper')">UPPER_CASE</button>
+        <button class="btn" onclick="convertCase('lower')">lower case</button>
+        <button class="btn" onclick="convertCase('slug')">slug-url</button>
+        <button class="btn" onclick="convertCase('title')">Title Case</button>
+      </div>
+      <textarea id="case-output" readonly style="margin-top:10px" placeholder="Resultado..."></textarea>
+    </div>
+
+    <div class="tool-panel" id="panel-html">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="code"></i> Escapar HTML</h2>
+        <p>Escapa o desescapa caracteres especiales HTML</p>
+      </div>
+      <textarea id="html-input" placeholder="<div class='example'>Hello & goodbye</div>"></textarea>
+      <div class="btn-row">
+        <button class="btn" onclick="escapeHTML()"><i data-lucide="chevrons-right"></i> Escapar</button>
+        <button class="btn" onclick="unescapeHTML()"><i data-lucide="chevrons-left"></i> Desescapar</button>
+        <button class="btn btn-green" onclick="copyHTML()"><i data-lucide="copy"></i> Copiar</button>
+      </div>
+      <textarea id="html-output" readonly style="margin-top:10px;font-family:monospace" placeholder="Resultado..."></textarea>
+    </div>
+
+    <div class="tool-panel" id="panel-gradient">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="droplets"></i> Generador de Gradientes</h2>
+        <p>Crea gradientes CSS lineales con los colores y ángulo que elijas</p>
+      </div>
+      <label>Color 1</label>
+      <input type="color" id="grad-color1" value="#8bb8d4" oninput="updateGradient()">
+      <label style="margin-top:14px">Color 2</label>
+      <input type="color" id="grad-color2" value="#d8b898" oninput="updateGradient()">
+      <label style="margin-top:14px">Ángulo: <span id="grad-angle-val">135°</span></label>
+      <input type="range" id="grad-angle" min="0" max="360" value="135" oninput="document.getElementById('grad-angle-val').textContent=this.value+'°'; updateGradient()">
+      <div id="grad-preview" style="height:80px;border-radius:12px;margin-top:14px;border:1px solid var(--line)"></div>
+      <div class="output" id="grad-css" style="font-family:monospace;font-size:0.85rem"></div>
+      <div class="btn-row"><button class="btn btn-green" onclick="copyGradient()"><i data-lucide="copy"></i> Copiar CSS</button></div>
+    </div>
+
+    <div class="tool-panel" id="panel-timer">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="timer"></i> Cronómetro y Temporizador</h2>
+        <p>Mide tiempos con el cronómetro o usa la cuenta regresiva</p>
+      </div>
+      <div class="timer-display" id="timer-display">00:00:00</div>
+      <div class="timer-controls">
+        <button class="btn" onclick="startStopwatch()"><i data-lucide="play"></i> Iniciar</button>
+        <button class="btn" onclick="pauseStopwatch()"><i data-lucide="pause"></i> Pausar</button>
+        <button class="btn" onclick="resetStopwatch()"><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+      </div>
+      <hr>
+      <label>Temporizador (minutos)</label>
+      <input type="number" id="timer-min" value="5" min="0" max="180">
+      <div class="timer-controls" style="margin-top:12px">
+        <button class="btn" onclick="startCountdown()"><i data-lucide="play"></i> Iniciar</button>
+        <button class="btn" onclick="pauseCountdown()"><i data-lucide="pause"></i> Pausar</button>
+        <button class="btn" onclick="resetCountdown()"><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+      </div>
+    </div>
+
+    <div class="tool-panel" id="panel-notes">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="notebook"></i> Notas Rápidas</h2>
+        <p>Guarda notas que se almacenan automáticamente en tu navegador</p>
+      </div>
+      <textarea id="quick-notes" style="min-height:200px" placeholder="Escribe tus notas aquí..."></textarea>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px">
+        <span id="notes-status" style="font-size:0.85rem;color:var(--muted)"></span>
+        <button class="btn btn-red" onclick="clearNotes()"><i data-lucide="trash"></i> Limpiar</button>
+      </div>
+    </div>
+
+    <div class="tool-panel" id="panel-diff">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="git-compare"></i> Comparar Textos</h2>
+        <p>Compara dos textos y encuentra las diferencias entre ellos</p>
+      </div>
+      <label>Texto Original</label>
+      <textarea id="diff-orig" placeholder="Texto original..."></textarea>
+      <label style="margin-top:12px">Texto Nuevo</label>
+      <textarea id="diff-new" placeholder="Texto modificado..."></textarea>
+      <button class="btn" onclick="compareText()"><i data-lucide="git-compare"></i> Comparar</button>
+      <div class="output" id="diff-output" style="font-family:monospace;font-size:0.85rem;white-space:pre-wrap;max-height:300px;overflow-y:auto"></div>
+    </div>
+
+    <div class="tool-panel" id="panel-ascii">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="image"></i> Generador ASCII Pro</h2>
+        <p>Convierte imágenes a arte ASCII con muestreo por área, dithering y color</p>
+      </div>
+      <div id="ascii-dropzone" style="border:2px dashed var(--dropzone-border);border-radius:12px;padding:30px;text-align:center;color:var(--muted);cursor:pointer;transition:all .2s" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="this.classList.remove('drag-over');asciiDrop(event)">
+        <i data-lucide="upload-cloud" style="width:32px;height:32px;margin-bottom:8px"></i>
+        <div style="font-weight:600;font-size:.9rem">Arrastra una imagen aquí</div>
+        <div style="font-size:.75rem;margin-top:4px">o haz clic para seleccionar</div>
+        <input type="file" id="ascii-file" accept="image/*" style="display:none" onchange="processAsciiImage()">
+      </div>
+      <div id="ascii-preview" style="margin-top:12px;max-width:100%;display:none"><img id="ascii-preview-img" style="max-width:100%;max-height:200px;border-radius:8px;display:block"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+        <div>
+          <label>Tipo de caracteres</label>
+          <select id="ascii-type" onchange="generateAscii()">
+            <option value="standard">Standard</option>
+            <option value="blocks">Bloques</option>
+            <option value="detailed">Detallado</option>
+            <option value="minimal">Minimal</option>
+            <option value="braille">Braille</option>
+            <option value="custom">Personalizado</option>
+          </select>
+        </div>
+        <div>
+          <label>Ancho: <span id="ascii-width-val">100</span></label>
+          <input type="range" id="ascii-width" min="30" max="240" value="100" oninput="document.getElementById('ascii-width-val').textContent=this.value; generateAscii()">
+        </div>
+      </div>
+      <div id="ascii-custom-section" style="display:none;margin-top:8px">
+        <label>Caracteres personalizados (oscuro → claro)</label>
+        <input type="text" id="ascii-custom-chars" value="@%#*+=-:. " oninput="generateAscii()">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+        <div>
+          <label>Contraste: <span id="ascii-contrast-val">1.0</span></label>
+          <input type="range" id="ascii-contrast" min="0.5" max="3" step="0.1" value="1" oninput="document.getElementById('ascii-contrast-val').textContent=this.value; generateAscii()">
+        </div>
+        <div>
+          <label>Brillo: <span id="ascii-brightness-val">0</span></label>
+          <input type="range" id="ascii-brightness" min="-100" max="100" value="0" oninput="document.getElementById('ascii-brightness-val').textContent=this.value; generateAscii()">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+        <div>
+          <label>Ratio pixel: <span id="ascii-ratio-val">0.50</span></label>
+          <input type="range" id="ascii-ratio" min="0.30" max="0.70" step="0.02" value="0.50" oninput="document.getElementById('ascii-ratio-val').textContent=parseFloat(this.value).toFixed(2); generateAscii()">
+        </div>
+        <div>
+          <label>Dithering</label>
+          <select id="ascii-dither" onchange="generateAscii()">
+            <option value="none">Ninguno</option>
+            <option value="floyd">Floyd-Steinberg</option>
+            <option value="ordered">Ordenado (Bayer)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:12px">
+        <div class="checkbox-row"><input type="checkbox" id="ascii-invert" onchange="generateAscii()"><label for="ascii-invert">Invertir</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="ascii-color" onchange="generateAscii()"><label for="ascii-color">Color</label></div>
+        <div class="checkbox-row"><input type="checkbox" id="ascii-bg" checked onchange="generateAscii()"><label for="ascii-bg">Fondo negro</label></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn" onclick="copyAscii()"><i data-lucide="copy"></i> Copiar</button>
+        <button class="btn" onclick="downloadAsciiText()"><i data-lucide="file-text"></i> TXT</button>
+        <button class="btn btn-green" onclick="downloadAscii()"><i data-lucide="download"></i> PNG</button>
+      </div>
+      <pre id="ascii-output" style="font-family:monospace;font-size:5px;line-height:5px;white-space:pre;overflow-x:auto;background:var(--ascii-bg);color:var(--ascii-color);padding:12px;border-radius:8px;margin-top:10px;display:none"></pre>
+      <canvas id="ascii-canvas" style="display:none"></canvas>
+    </div>
+    <div class="tool-panel" id="panel-pdf">
+      <div class="panel-header">
+        <div class="back-btn" onclick="showTool(null)"><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</div>
+        <h2><i data-lucide="archive"></i> Compresor PDF</h2>
+        <p>Reduce el tamaño de tus archivos PDF manteniendo la calidad</p>
+      </div>
+      <label>Selecciona un archivo PDF</label>
+      <input type="file" id="pdf-file" accept=".pdf" onchange="pdfSelected()">
+      <label>Nivel de compresión: <span id="pdf-level-val">5</span></label>
+      <input type="range" id="pdf-level" min="1" max="10" value="5" oninput="document.getElementById('pdf-level-val').textContent=this.value">
+      <div class="progress" id="pdf-progress"><div class="progress-bar" id="pdf-progress-bar"></div></div>
+      <div class="btn-row">
+        <button class="btn" onclick="compressPDF()"><i data-lucide="archive"></i> Comprimir</button>
+        <button class="btn btn-green" id="pdf-download" style="display:none" onclick="downloadPDF()"><i data-lucide="download"></i> Descargar</button>
+      </div>
+      <div class="output" id="pdf-output"></div>
+    </div>
+  </main>
+
+  <script>
+    setupToolNavigation();
+    setupSearchFilter();
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+    function setupSearchFilter() {
+      var searchInput = document.getElementById('sidebar-search');
+      if (!searchInput) return;
+
+      searchInput.addEventListener('input', function() {
+        var q = this.value.trim().toLowerCase();
+        var list = document.querySelector('.tool-list');
+        if (q) { list.classList.add('searching'); } else { list.classList.remove('searching'); }
+        document.querySelectorAll('.tool-item').forEach(function(item) {
+          var name = item.querySelector('.tool-name').textContent.toLowerCase();
+          var desc = item.querySelector('.tool-desc').textContent.toLowerCase();
+          if (!q || name.indexOf(q) !== -1 || desc.indexOf(q) !== -1) {
+            item.classList.remove('hidden');
+          } else {
+            item.classList.add('hidden');
+          }
+        });
+        document.querySelectorAll('.tool-section').forEach(function(section) {
+          var visible = section.querySelectorAll('.tool-item:not(.hidden)').length;
+          section.style.display = visible ? '' : 'none';
+        });
+      });
+    }
+    function setupToolNavigation() {
+      document.querySelectorAll('.tool-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          showTool(item.getAttribute('data-tool'));
+        });
+      });
+    }
+    function showTool(t) {
+      var item = t ? document.querySelector('.tool-item[data-tool="' + t + '"]') : null;
+      var panel = t ? document.getElementById('panel-' + t) : null;
+      if (!item || !panel) return;
+      document.querySelectorAll('.tool-item').forEach(function(i) { i.classList.remove('active'); });
+      document.querySelectorAll('.tool-panel').forEach(function(p) { p.classList.remove('active'); });
+      item.classList.add('active');
+      panel.classList.add('active');
+      var titleEl = document.getElementById('app-header-title');
+      if (titleEl && item) {
+        titleEl.textContent = item.querySelector('.tool-name').textContent;
+      }
+      if (window.matchMedia('(max-width: 768px)').matches) panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+
+    var sidebarToggle = document.getElementById('sidebar-toggle');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', function() {
+        document.body.classList.toggle('sidebar-collapsed');
+      });
+    }
+
+    var qrDataURL='';function generateQR(){var t=document.getElementById('qr-text').value;var s=parseInt(document.getElementById('qr-size').value);if(!t)return;var c=document.createElement('canvas');QRCode.toCanvas(c,t,{width:s}).then(function(){qrDataURL=c.toDataURL();document.getElementById('qr-output').innerHTML='<img src="'+qrDataURL+'" alt="QR">';});}function downloadQR(){if(qrDataURL){var a=document.createElement('a');a.href=qrDataURL;a.download='qrcode.png';a.click();}}
+
+    function generatePassword(){var l=parseInt(document.getElementById('pwd-len').value);var c='abcdefghijklmnopqrstuvwxyz';if(document.getElementById('pwd-upper').checked)c+='ABCDEFGHIJKLMNOPQRSTUVWXYZ';if(document.getElementById('pwd-numbers').checked)c+='0123456789';if(document.getElementById('pwd-symbols').checked)c+='!@#$%^&*()_+-=[]{}|;:,.<>?';var p='';for(var i=0;i<l;i++)p+=c[Math.floor(Math.random()*c.length)];document.getElementById('pwd-output').textContent=p;}function copyPassword(){var p=document.getElementById('pwd-output').textContent;if(p)navigator.clipboard.writeText(p);}
+
+    function checkStrength(){var p=document.getElementById('passcheck-input').value;var s=0;if(p.length>4)s++;if(p.length>8)s++;if(p.length>12)s++;if(p.match(/[A-Z]/))s++;if(p.match(/[a-z]/))s++;if(p.match(/[0-9]/))s++;if(p.match(/[^a-zA-Z0-9]/))s++;var bar=document.getElementById('str-bar');var out=document.getElementById('passcheck-output');var labels=['Muy débil','Débil','Aceptable','Fuerte','Muy fuerte'];var colors=['#e8a0a0','#d8b888','#b8c888','#88c8a0','#80b8d4'];var idx=Math.min(s,4);bar.style.width=(s/7*100)+'%';bar.style.background=colors[idx];if(p.length<4){out.textContent='Muy corta';bar.style.width='10%';bar.style.background='#e0d8d0';}else{out.textContent=labels[idx];}}
+
+    function textTransform(t){var i=document.getElementById('text-input').value;var o='';switch(t){case'upper':o=i.toUpperCase();break;case'lower':o=i.toLowerCase();break;case'title':o=i.replace(/\w\S*/g,function(t){return t.charAt(0).toUpperCase()+t.substr(1).toLowerCase();});break;case'trim':o=i.replace(/\s+/g,' ').trim();break;case'base64enc':o=btoa(unescape(encodeURIComponent(i)));break;case'base64dec':o=decodeURIComponent(escape(atob(i)));break;case'urlenc':o=encodeURIComponent(i);break;case'urldec':o=decodeURIComponent(i);break;case'reverse':o=i.split('').reverse().join('');break;}document.getElementById('text-output').value=o;updateTextStats(i);}function updateTextStats(t){var w=t.trim()?t.trim().split(/\s+/).length:0;document.getElementById('text-stats').textContent='Caracteres: '+t.length+' | Palabras: '+w+' | Líneas: '+t.split('\n').length;}document.getElementById('text-input').addEventListener('input',function(){updateTextStats(this.value);});
+
+    function findReplace(){var t=document.getElementById('fr-input').value;var f=document.getElementById('fr-find').value;var r=document.getElementById('fr-replace').value;if(!f)return;var cs=document.getElementById('fr-casesens').checked;var flags='g';if(!cs)flags+='i';var re=new RegExp(f.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),flags);document.getElementById('fr-output').value=t.replace(re,r);}function copyFR(){var t=document.getElementById('fr-output').value;if(t)navigator.clipboard.writeText(t);}
+
+    function formatJSON(){try{var o=JSON.parse(document.getElementById('json-input').value);document.getElementById('json-output').value=JSON.stringify(o,null,2);}catch(e){document.getElementById('json-output').value='Error: '+e.message;}}function minifyJSON(){try{var o=JSON.parse(document.getElementById('json-input').value);document.getElementById('json-output').value=JSON.stringify(o);}catch(e){document.getElementById('json-output').value='Error: '+e.message;}}function copyJSON(){var j=document.getElementById('json-output').value;if(j)navigator.clipboard.writeText(j);}
+
+    var currentBase=10;function setBase(b){currentBase=b;document.querySelectorAll('.base-btn').forEach(function(btn){btn.classList.remove('active');});document.querySelector('.base-btn[data-base="'+b+'"]').classList.add('active');convertBase();}function convertBase(){var v=document.getElementById('base-input').value;if(!v){document.getElementById('base-output').innerHTML='';return;}var dec;try{dec=parseInt(v,currentBase);if(isNaN(dec)){document.getElementById('base-output').textContent='Valor inválido';return;}}catch(e){document.getElementById('base-output').textContent='Valor inválido';return;}document.getElementById('base-output').innerHTML='<div style="display:grid;grid-template-columns:auto 1fr;gap:8px 16px">'+
+      '<span style="color:var(--output-code)">Decimal:</span><span><strong>'+dec+'</strong></span>'+
+      '<span style="color:var(--output-code)">Binario:</span><span>'+dec.toString(2)+'</span>'+
+      '<span style="color:var(--output-code)">Octal:</span><span>'+dec.toString(8)+'</span>'+
+      '<span style="color:var(--output-code)">Hexadecimal:</span><span>'+dec.toString(16).toUpperCase()+'</span></div>';}
+
+    function convertColor(){var h=document.getElementById('color-picker').value;var r=parseInt(h.slice(1,3),16),g=parseInt(h.slice(3,5),16),b=parseInt(h.slice(5,7),16);var hsl=rgbToHsl(r,g,b);document.getElementById('color-output').innerHTML='<strong>HEX:</strong> '+h+'<br><strong>RGB:</strong> rgb('+r+', '+g+', '+b+')<br><strong>HSL:</strong> hsl('+hsl[0]+', '+hsl[1]+'%, '+hsl[2]+'%)<br><span style="display:inline-block;width:32px;height:32px;background:'+h+';border-radius:8px;vertical-align:middle;border:1px solid var(--line);margin-left:6px"></span>';}function rgbToHsl(r,g,b){r/=255;g/=255;b/=255;var max=Math.max(r,g,b),min=Math.min(r,g,b);var h,s,l=(max+min)/2;if(max===min){h=s=0;}else{var d=max-min;s=l>0.5?d/(2-max-min):d/(max+min);switch(max){case r:h=((g-b)/d+(g<b?6:0))/6;break;case g:h=((b-r)/d+2)/6;break;case b:h=((r-g)/d+4)/6;break;}}return[Math.round(h*360),Math.round(s*100),Math.round(l*100)];}convertColor();
+
+    function updateShadow(){var x=document.getElementById('sx').value;var y=document.getElementById('sy').value;var bl=document.getElementById('sblur').value;var sp=document.getElementById('sspread').value;var c=document.getElementById('scolor').value;document.getElementById('sx-val').textContent=x;document.getElementById('sy-val').textContent=y;document.getElementById('sblur-val').textContent=bl;document.getElementById('sspread-val').textContent=sp;var css=x+'px '+y+'px '+bl+'px '+sp+'px '+c;document.getElementById('shadow-box').style.boxShadow=css;document.getElementById('shadow-css').textContent='box-shadow: '+css+';';}function copyShadow(){var css=document.getElementById('shadow-css').textContent;if(css)navigator.clipboard.writeText(css);}updateShadow();
+
+    var imgBase64='';function imageToBase64(){var f=document.getElementById('img-file').files[0];if(!f)return;var r=new FileReader();r.onload=function(e){imgBase64=e.target.result;document.getElementById('img-output').innerHTML='<img src="'+imgBase64+'" style="max-width:200px;margin-bottom:10px;border-radius:8px"><br><code style="font-size:0.75rem;word-break:break-all">'+imgBase64.slice(0,80)+'...</code>';};r.readAsDataURL(f);}function copyImgBase64(){if(imgBase64)navigator.clipboard.writeText(imgBase64);}
+
+    function renderHTMLPreview(){var h=document.getElementById('htmlpreview-input').value;document.getElementById('htmlpreview-output').innerHTML=h;}
+
+    document.getElementById('ff-preset').addEventListener('change',function(){var e=document.getElementById('ff-extra'),l=document.getElementById('ff-extra-label'),v=document.getElementById('ff-extra-value');e.style.display='none';if(this.value==='gif'){e.style.display='block';l.textContent='FPS (default: 10)';v.placeholder='10';}else if(this.value==='thumbnail'){e.style.display='block';l.textContent='Segundo (default: 1)';v.placeholder='1';}else if(this.value==='trim'){e.style.display='block';l.textContent='Inicio y duración';v.placeholder='00:00:10 00:00:30';}else if(this.value==='resize'){e.style.display='block';l.textContent='Resolución (ej: 1280:720)';v.placeholder='1280:720';}});function generateFFmpeg(){var i=document.getElementById('ff-input').value||'input.mp4';var o=document.getElementById('ff-output').value||'output';var p=document.getElementById('ff-preset').value;var e=document.getElementById('ff-extra-value').value;var c='ffmpeg';switch(p){case'mp3':c+=' -i "'+i+'" -vn -acodec libmp3lame -q:a 2 "'+o.replace(/\.\w+$/,'.mp3')+'"';break;case'gif':c+=' -i "'+i+'" -vf "fps='+(e||10)+',scale=480:-1:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse" -loop 0 "'+o.replace(/\.\w+$/,'.gif')+'"';break;case'webm':c+=' -i "'+i+'" -c:v libvpx-vp9 -crf 30 -b:v 0 -c:a libopus "'+o.replace(/\.\w+$/,'.webm')+'"';break;case'compress':c+=' -i "'+i+'" -vcodec libx265 -crf 28 -preset fast -acodec aac -b:a 128k "'+o+'"';break;case'thumbnail':c+=' -i "'+i+'" -ss '+(e||1)+' -vframes 1 -q:v 2 "'+o.replace(/\.\w+$/,'.jpg')+'"';break;case'trim':var t=(e||'00:00:10 00:00:30').split(' ');c+=' -i "'+i+'" -ss '+t[0]+' -to '+t[1]+' -c copy "'+o+'"';break;case'resize':c+=' -i "'+i+'" -vf "scale='+(e||'1280:720')+'" -c:a copy "'+o+'"';break;case'audio-compress':c+=' -i "'+i+'" -b:a 128k -ar 44100 "'+o.replace(/\.\w+$/,'.mp3')+'"';break;case'custom':c+=' -i "'+i+'" [tus argumentos] "'+o+'"';break;}document.getElementById('ff-result').textContent=c;}function copyFFmpeg(){var c=document.getElementById('ff-result').textContent;if(c)navigator.clipboard.writeText(c);}
+
+    async function generateHash(){var t=document.getElementById('hash-input').value;if(!t)return;var e=new TextEncoder();var d=e.encode(t);var s1=await crypto.subtle.digest('SHA-1',d);var s2=await crypto.subtle.digest('SHA-256',d);var s5=await crypto.subtle.digest('SHA-512',d);var h=function(b){return Array.from(new Uint8Array(b)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');};document.getElementById('hash-output').innerHTML='<strong>SHA-1:</strong> '+h(s1)+'<br><br><strong>SHA-256:</strong> '+h(s2)+'<br><br><strong>SHA-512:</strong> '+h(s5);}
+
+    function convertUnit(){var v=parseFloat(document.getElementById('unit-value').value);var f=document.getElementById('unit-from').value;var t=document.getElementById('unit-to').value;if(isNaN(v))return;var r;var c={px:1,rem:16,em:16,pt:1.333};var p={px:1,rem:1/16,em:1/16,pt:1/1.333};if(c[f]&&c[t]){r=v*c[f]*p[t];}else if(['kb','mb','gb'].includes(f)&&['kb','mb','gb'].includes(t)){var b={kb:1024,mb:1048576,gb:1073741824};r=v*b[f]/b[t];}else if(f==='celsius'&&t==='fahrenheit'){r=v*9/5+32;}else if(f==='fahrenheit'&&t==='celsius'){r=(v-32)*5/9;}else{r='Conversión no soportada';}document.getElementById('unit-output').textContent=typeof r==='number'?v+' '+f+' = '+r.toFixed(4)+' '+t:r;}
+
+    function generateRandom(){var mn=parseInt(document.getElementById('rand-min').value)||0;var mx=parseInt(document.getElementById('rand-max').value)||1;var ct=parseInt(document.getElementById('rand-count').value)||1;if(mn>mx){var tmp=mn;mn=mx;mx=tmp;}var nums=[];for(var i=0;i<ct;i++){nums.push(Math.floor(Math.random()*(mx-mn+1))+mn);}document.getElementById('rand-output').textContent=nums.join(', ');}function copyRandom(){var t=document.getElementById('rand-output').textContent;if(t)navigator.clipboard.writeText(t);}
+
+    var lw=['lorem','ipsum','dolor','sit','amet','consectetur','adipiscing','elit','sed','do','eiusmod','tempor','incididunt','ut','labore','et','dolore','magna','aliqua','enim','ad','minim','veniam','quis','nostrud','exercitation','ullamco','laboris','nisi','aliquip','ex','ea','commodo','consequat','duis','aute','irure','in','reprehenderit','voluptate','velit','esse','cillum','fugiat','nulla','pariatur','excepteur','sint','occaecat','cupidatat','non','proident','sunt','culpa','qui','officia','deserunt','mollit','anim','id','est','laborum'];function generateLorem(){var c=parseInt(document.getElementById('lorem-count').value)||3;var p=[];for(var i=0;i<c;i++){var w=[];var l=40+Math.floor(Math.random()*30);for(var j=0;j<l;j++){w.push(lw[Math.floor(Math.random()*lw.length)]);}w[0]=w[0].charAt(0).toUpperCase()+w[0].slice(1);p.push(w.join(' ')+'.');}document.getElementById('lorem-output').textContent=p.join('\n\n');}function copyLorem(){var t=document.getElementById('lorem-output').textContent;if(t)navigator.clipboard.writeText(t);}
+
+    function testRegex(){var p=document.getElementById('regex-pattern').value;var f=document.getElementById('regex-flags').value;var t=document.getElementById('regex-text').value;if(!p||!t)return;try{var r=new RegExp(p,f);var m=t.match(r);if(m){document.getElementById('regex-output').innerHTML='<strong>'+m.length+' coincidencia(s):</strong><br>'+m.map(function(m,i){return (i+1)+'. "'+m+'"';}).join('<br>');}else{document.getElementById('regex-output').textContent='Sin coincidencias';}}catch(e){document.getElementById('regex-output').textContent='Error: '+e.message;}}
+
+    function generateUUID(){var c=parseInt(document.getElementById('uuid-count').value)||5;var u=[];for(var i=0;i<c;i++){u.push('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,function(c){var r=Math.random()*16|0;var v=c==='x'?r:(r&0x3|0x8);return v.toString(16);}));}document.getElementById('uuid-output').innerHTML=u.map(function(u){return '<div style="margin:4px 0">'+u+'</div>';}).join('');}function copyUUID(){var u=document.getElementById('uuid-output').textContent;if(u)navigator.clipboard.writeText(u);}
+
+    function tsToDate(){var t=parseInt(document.getElementById('ts-input').value);if(isNaN(t))return;var d=new Date(t*1000);document.getElementById('ts-output').textContent=d.toLocaleString('es-ES');}function dateToTs(){var s=document.getElementById('date-input').value;try{var d=new Date(s);if(isNaN(d.getTime()))throw new Error();document.getElementById('ts-output').textContent=Math.floor(d.getTime()/1000);}catch(e){document.getElementById('ts-output').textContent='Fecha inválida';}}
+
+    function renderMarkdown(){var m=document.getElementById('md-input').value;var h=m.replace(/^### (.*$)/gim,'<h3>$1</h3>').replace(/^## (.*$)/gim,'<h2>$1</h2>').replace(/^# (.*$)/gim,'<h1>$1</h1>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\*(.*?)\*/g,'<em>$1</em>').replace(/\n/g,'<br>');document.getElementById('md-output').innerHTML=h;}
+
+    function convertCase(t){var i=document.getElementById('case-input').value;var o='';switch(t){case'camel':o=i.replace(/(?:^\w|[A-Z]|\b\w)/g,function(w,i){return i===0?w.toLowerCase():w.toUpperCase();}).replace(/\s+/g,'');break;case'snake':o=i.replace(/\s+/g,'_').toLowerCase();break;case'kebab':o=i.replace(/\s+/g,'-').toLowerCase();break;case'pascal':o=i.replace(/(?:^\w|[A-Z]|\b\w)/g,function(w){return w.toUpperCase();}).replace(/\s+/g,'');break;case'upper':o=i.replace(/\s+/g,'_').toUpperCase();break;case'lower':o=i.toLowerCase();break;case'slug':o=i.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');break;case'title':o=i.replace(/\w\S*/g,function(t){return t.charAt(0).toUpperCase()+t.substr(1).toLowerCase();});break;}document.getElementById('case-output').value=o;}
+
+    function escapeHTML(){var i=document.getElementById('html-input').value;var o=i.replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c];});document.getElementById('html-output').value=o;}function unescapeHTML(){var i=document.getElementById('html-input').value;var o=i.replace(/&amp;|&lt;|&gt;|&quot;|&#39;/g,function(c){return{'&amp;':'&','&lt;':'<','&gt;':'>','&quot;':'"','&#39;':"'"}[c];});document.getElementById('html-output').value=o;}function copyHTML(){var h=document.getElementById('html-output').value;if(h)navigator.clipboard.writeText(h);}
+
+    function updateGradient(){var c1=document.getElementById('grad-color1').value;var c2=document.getElementById('grad-color2').value;var a=document.getElementById('grad-angle').value;var css='linear-gradient('+a+'deg, '+c1+', '+c2+')';document.getElementById('grad-preview').style.background=css;document.getElementById('grad-css').textContent='background: '+css+';';}function copyGradient(){var c=document.getElementById('grad-css').textContent;if(c)navigator.clipboard.writeText(c);}updateGradient();
+
+    var swI=null,swS=0,cdI=null,cdS=0;function fmt(s){return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor((s%3600)/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}function startStopwatch(){if(swI)return;swI=setInterval(function(){swS++;document.getElementById('timer-display').textContent=fmt(swS);},1000);}function pauseStopwatch(){clearInterval(swI);swI=null;}function resetStopwatch(){pauseStopwatch();swS=0;document.getElementById('timer-display').textContent='00:00:00';}function startCountdown(){var m=parseInt(document.getElementById('timer-min').value)||0;cdS=m*60;if(cdI)return;cdI=setInterval(function(){if(cdS<=0){clearInterval(cdI);cdI=null;return;}cdS--;document.getElementById('timer-display').textContent=fmt(cdS);},1000);}function pauseCountdown(){clearInterval(cdI);cdI=null;}function resetCountdown(){pauseCountdown();cdS=0;document.getElementById('timer-display').textContent='00:00:00';}
+
+    var notes=document.getElementById('quick-notes');notes.value=localStorage.getItem('quickNotes')||'';notes.addEventListener('input',function(){localStorage.setItem('quickNotes',notes.value);document.getElementById('notes-status').textContent='Guardado automáticamente';setTimeout(function(){document.getElementById('notes-status').textContent='';},2000);});function clearNotes(){notes.value='';localStorage.removeItem('quickNotes');}
+
+    function compareText(){var o=document.getElementById('diff-orig').value;var n=document.getElementById('diff-new').value;var ol=o.split('\n');var nl=n.split('\n');var out='';var len=Math.max(ol.length,nl.length);for(var i=0;i<len;i++){var a=ol[i]||'';var b=nl[i]||'';if(a===b){out+='  '+(i+1)+': '+a+'\n';}else{if(a)out+='- '+(i+1)+': '+a+'\n';if(b)out+='+ '+(i+1)+': '+b+'\n';}}document.getElementById('diff-output').textContent=out||'Sin diferencias';}
+
+    var asciiPresets={standard:' .:-=+*#%@',blocks:' ░▒▓█',detailed:" .'`^\":;Il!i><~+_-?][}{1)(|\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",minimal:' ░█',braille:' ⣀⣄⣆⣇⣏⣟⣿'};
+    var asciiImageData=null;
+    var bayerMatrix=[[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],[3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]];
+    document.getElementById('ascii-dropzone').addEventListener('click',function(){document.getElementById('ascii-file').click();});
+    document.getElementById('ascii-type').addEventListener('change',function(){document.getElementById('ascii-custom-section').style.display=this.value==='custom'?'block':'none';if(asciiImageData)generateAscii();});
+    function asciiDrop(e){e.preventDefault();this.style.borderColor='#d8c8b8';this.style.background='transparent';var files=e.dataTransfer.files;if(files.length>0){document.getElementById('ascii-file').files=files;processAsciiImage();}}
+    function processAsciiImage(){var file=document.getElementById('ascii-file').files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){var img=new Image();img.onload=function(){var preview=document.getElementById('ascii-preview');var previewImg=document.getElementById('ascii-preview-img');preview.style.display='block';previewImg.src=img.src;asciiImageData=img;generateAscii();};img.src=e.target.result;};reader.readAsDataURL(file);}
+    function generateAscii(){if(!asciiImageData)return;var type=document.getElementById('ascii-type').value;var width=parseInt(document.getElementById('ascii-width').value)||100;var invert=document.getElementById('ascii-invert').checked;var color=document.getElementById('ascii-color').checked;var bgBlack=document.getElementById('ascii-bg').checked;var contrast=parseFloat(document.getElementById('ascii-contrast').value)||1;var brightness=parseInt(document.getElementById('ascii-brightness').value)||0;var ratio=parseFloat(document.getElementById('ascii-ratio').value)||0.5;var dither=document.getElementById('ascii-dither').value;var chars=type==='custom'?document.getElementById('ascii-custom-chars').value:asciiPresets[type];if(!chars||chars.length<2)chars=asciiPresets.standard;
+      var charW=6;var charH=Math.round(charW/ratio);var fontSize=charH;
+      var sourceW=width;var sourceH=Math.round(asciiImageData.height*(width/asciiImageData.width)*ratio);
+      var srcCanvas=document.createElement('canvas');srcCanvas.width=sourceW;srcCanvas.height=sourceH;var srcCtx=srcCanvas.getContext('2d');srcCtx.drawImage(asciiImageData,0,0,sourceW,sourceH);
+      var srcData=srcCtx.getImageData(0,0,sourceW,sourceH).data;var brightnesses=[];
+      for(var y=0;y<sourceH;y++){var row=[];for(var x=0;x<sourceW;x++){var i=(y*sourceW+x)*4;var r=srcData[i],g=srcData[i+1],b=srcData[i+2];var lum=0.2126*r+0.7152*g+0.0722*b;lum=(lum-128)*contrast+128+brightness;lum=Math.max(0,Math.min(255,lum));row.push(lum/255);}brightnesses.push(row);}
+      if(dither==='floyd'){for(var y=0;y<sourceH;y++){for(var x=0;x<sourceW;x++){var oldVal=brightnesses[y][x];var newVal=Math.round(oldVal);var err=oldVal-newVal;brightnesses[y][x]=newVal;if(x+1<sourceW)brightnesses[y][x+1]+=err*7/16;if(y+1<sourceH){if(x>0)brightnesses[y+1][x-1]+=err*3/16;brightnesses[y+1][x]+=err*5/16;if(x+1<sourceW)brightnesses[y+1][x+1]+=err*1/16;}}}}
+      if(dither==='ordered'){for(var y=0;y<sourceH;y++){for(var x=0;x<sourceW;x++){var threshold=(bayerMatrix[y%8][x%8]+0.5)/64;var val=brightnesses[y][x];brightnesses[y][x]=val<threshold?0:1;}}}
+      var output=document.getElementById('ascii-output');var outCanvas=document.getElementById('ascii-canvas');var outCtx=outCanvas.getContext('2d');
+      outCanvas.width=sourceW*charW;outCanvas.height=sourceH*charH;outCtx.fillStyle=bgBlack?'#111':'#fff';outCtx.fillRect(0,0,outCanvas.width,outCanvas.height);outCtx.font=fontSize+'px monospace';outCtx.textBaseline='top';
+      var textLines=[];var textColors=[];
+      for(var y=0;y<sourceH;y++){var lineChars='';var lineColors=[];for(var x=0;x<sourceW;x++){var b=brightnesses[y][x];if(invert)b=1-b;var idx=Math.floor(b*(chars.length-1));var ch=chars[Math.min(Math.max(idx,0),chars.length-1)];lineChars+=ch;
+          if(color){var i=(y*sourceW+x)*4;lineColors.push('rgb('+srcData[i]+','+srcData[i+1]+','+srcData[i+2]+')');}
+          outCtx.fillStyle=color&&lineColors.length>0?lineColors[lineColors.length-1]:(bgBlack?'#fff':'#111');outCtx.fillText(ch,x*charW,y*charH);}
+        textLines.push(lineChars);if(color)textColors.push(lineColors);}
+      if(color){output.innerHTML='';for(var y=0;y<textLines.length;y++){var lineDiv=document.createElement('div');lineDiv.style.height=charH+'px';for(var x=0;x<textLines[y].length;x++){var span=document.createElement('span');span.textContent=textLines[y][x];span.style.color=textColors[y][x];span.style.display='inline-block';span.style.width=charW+'px';span.style.height=charH+'px';span.style.lineHeight=charH+'px';span.style.textAlign='center';lineDiv.appendChild(span);}output.appendChild(lineDiv);}}
+      else{output.textContent=textLines.join('\n');}
+      output.style.display='block';output.style.fontSize=charH+'px';output.style.lineHeight=charH+'px';}
+    function copyAscii(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=output.textContent||'';if(!text){var lines=output.querySelectorAll('div');var t=[];lines.forEach(function(line){var spans=line.querySelectorAll('span');var s='';spans.forEach(function(sp){s+=sp.textContent;});t.push(s);});text=t.join('\n');}navigator.clipboard.writeText(text);}
+    function downloadAsciiText(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=output.textContent||'';if(!text){var lines=output.querySelectorAll('div');var t=[];lines.forEach(function(line){var spans=line.querySelectorAll('span');var s='';spans.forEach(function(sp){s+=sp.textContent;});t.push(s);});text=t.join('\n');}var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ascii-art.txt';a.click();}
+    function downloadAscii(){var canvas=document.getElementById('ascii-canvas');if(canvas.width===0||canvas.height===0)return;var a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='ascii-art.png';a.click();}
+
+    var _compressedPDF=null;
+    function pdfSelected(){document.getElementById('pdf-output').innerHTML='';document.getElementById('pdf-download').style.display='none';}
+    async function compressPDF(){var f=document.getElementById('pdf-file').files[0];if(!f){document.getElementById('pdf-output').textContent='Selecciona un archivo PDF primero';return;}
+      var l=parseInt(document.getElementById('pdf-level').value);var quality=[0.92,0.85,0.78,0.7,0.6,0.5,0.4,0.3,0.2,0.1][l-1];var dpi=[200,180,160,140,120,100,85,72,60,50][l-1];
+      var bar=document.getElementById('pdf-progress-bar');var prog=document.getElementById('pdf-progress');prog.classList.add('active');bar.style.width='5%';
+      try{
+        var buf=await f.arrayBuffer();bar.style.width='10%';
+        var pdfjsLib=window.pdfjsLib;pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        var pdf=await pdfjsLib.getDocument({data:buf}).promise;var n=pdf.numPages;bar.style.width='15%';
+        var newDoc=await PDFLib.PDFDocument.create();
+        for(var i=1;i<=n;i++){
+          var page=await pdf.getPage(i);var origVp=page.getViewport({scale:1});var pageW=origVp.width;var pageH=origVp.height;
+          var targetDPI=dpi;var scale=targetDPI/72;
+          var vp=page.getViewport({scale:scale});
+          var canvas=document.createElement('canvas');canvas.width=vp.width;canvas.height=vp.height;
+          var ctx=canvas.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,vp.width,vp.height);
+          await page.render({canvasContext:ctx,viewport:vp}).promise;
+          var jpegData=canvas.toDataURL('image/jpeg',quality);
+          var bs=atob(jpegData.split(',')[1]);var len=bs.length;var bytes=new Uint8Array(len);
+          for(var j=0;j<len;j++)bytes[j]=bs.charCodeAt(j);
+          var img=await newDoc.embedJpg(bytes);
+          var p=newDoc.addPage([pageW,pageH]);
+          p.drawImage(img,{x:0,y:0,width:pageW,height:pageH});
+          bar.style.width=15+((i/n)*75)+'%';
+        }
+        var compressed=await newDoc.save({useObjectStreams:true});bar.style.width='100%';
+        _compressedPDF=compressed;
+        var orig=f.size;var comp=compressed.length;var red=((1-comp/orig)*100).toFixed(1);
+        var note=red<0?' <span style="color:var(--error)">(no se pudo reducir, intenta un nivel más alto)</span>':'';
+        document.getElementById('pdf-output').innerHTML='<strong>Original:</strong> '+fmtBytes(orig)+'<br><strong>Comprimido:</strong> '+fmtBytes(comp)+'<br><strong>Reducción:</strong> '+red+'%'+note+'<br><small style="color:var(--muted)">(el PDF se recompone a partir de imágenes para lograr compresión)</small>';
+        document.getElementById('pdf-download').style.display='inline-flex';
+      }catch(e){
+        document.getElementById('pdf-output').textContent='Error: '+(e.message||'no se pudo comprimir el PDF');
+      }
+      prog.classList.remove('active');
+    }
+    function fmtBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+    function downloadPDF(){if(_compressedPDF){var b=new Blob([_compressedPDF],{type:'application/pdf'});var u=URL.createObjectURL(b);var a=document.createElement('a');a.href=u;a.download='comprimido.pdf';a.click();URL.revokeObjectURL(u);}}
+
+    (function(){
+      var toggle=document.getElementById('theme-toggle');
+      var body=document.body;
+      var icons=toggle?toggle.querySelector('i[data-lucide]'):null;
+      function applyTheme(dark){
+        if(dark){body.classList.add('dark');}else{body.classList.remove('dark');}
+        if(toggle){
+          var iconName=dark?'sun':'moon';
+          toggle.innerHTML='<i data-lucide="'+iconName+'"></i>';
+          if(window.lucide&&typeof window.lucide.createIcons==='function'){window.lucide.createIcons();}
+        }
+      }
+      var saved=localStorage.getItem('theme');
+      var prefersDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var isDark=saved?saved==='dark':prefersDark;
+      applyTheme(isDark);
+      if(toggle){
+        toggle.addEventListener('click',function(){
+          var now=body.classList.contains('dark');
+          applyTheme(!now);
+          localStorage.setItem('theme',!now?'dark':'light');
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
