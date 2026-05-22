@@ -1,0 +1,8 @@
+[build]
+  command = "pnpm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/utilidades.html"
+  to = "/"
+  status = 301
