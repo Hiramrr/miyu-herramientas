@@ -17,7 +17,13 @@
   },
   "pnpm": {
     "onlyBuiltDependencies": [
-      "esbuild"
+      "esbuild",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp"
     ]
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.8.1"
   }
 }

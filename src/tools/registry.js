@@ -70,10 +70,76 @@ export const toolSections = [
         "description": "Convierte a Base64"
       },
       {
+        "id": "image-convert",
+        "icon": "repeat",
+        "name": "Convertir Imagen",
+        "description": "PNG JPEG WebP"
+      },
+      {
         "id": "ascii",
         "icon": "image",
         "name": "ASCII",
         "description": "Imagen a arte ASCII"
+      },
+      {
+        "id": "bgremove",
+        "icon": "eraser",
+        "name": "Quitar Fondo",
+        "description": "Elimina fondos de fotos"
+      }
+    ]
+  },
+  {
+    "id": "archivos",
+    "title": "Archivos",
+    "tools": [
+      {
+        "id": "pdf",
+        "icon": "archive",
+        "name": "Comprimir PDF",
+        "description": "Reduce tamaño de PDFs"
+      },
+      {
+        "id": "pdf-merge",
+        "icon": "files",
+        "name": "Unir PDFs",
+        "description": "Combina varios PDFs"
+      },
+      {
+        "id": "pdf-split",
+        "icon": "scissors",
+        "name": "Dividir PDF",
+        "description": "Extrae páginas"
+      },
+      {
+        "id": "pdf-img2pdf",
+        "icon": "image-plus",
+        "name": "Imágenes a PDF",
+        "description": "Crea PDF desde imágenes"
+      },
+      {
+        "id": "pdf-pdf2img",
+        "icon": "images",
+        "name": "PDF a Imágenes",
+        "description": "Convierte páginas a PNG"
+      },
+      {
+        "id": "pdf-rotate",
+        "icon": "rotate-cw",
+        "name": "Rotar PDF",
+        "description": "Gira páginas del PDF"
+      },
+      {
+        "id": "pdf-remove",
+        "icon": "trash-2",
+        "name": "Eliminar Páginas",
+        "description": "Borra páginas del PDF"
+      },
+      {
+        "id": "pdf-text",
+        "icon": "type",
+        "name": "Extraer Texto",
+        "description": "Extrae texto del PDF"
       }
     ]
   },
@@ -128,6 +194,12 @@ export const toolSections = [
         "icon": "video",
         "name": "FFmpeg",
         "description": "Comandos ffmpeg"
+      },
+      {
+        "id": "video-download",
+        "icon": "download",
+        "name": "Descargar Video",
+        "description": "YouTube y TikTok con yt-dlp"
       }
     ]
   },
@@ -140,6 +212,12 @@ export const toolSections = [
         "icon": "palette",
         "name": "Colores",
         "description": "Conversor HEX RGB HSL"
+      },
+      {
+        "id": "palette",
+        "icon": "paintbrush",
+        "name": "Generación de paletas",
+        "description": "Genera paletas OKLCH"
       },
       {
         "id": "harmony",
@@ -200,60 +278,6 @@ export const toolSections = [
         "icon": "notebook",
         "name": "Notas",
         "description": "Notas guardadas"
-      }
-    ]
-  },
-  {
-    "id": "archivos",
-    "title": "Archivos",
-    "tools": [
-      {
-        "id": "pdf",
-        "icon": "archive",
-        "name": "Comprimir PDF",
-        "description": "Reduce tamaño de PDFs"
-      },
-      {
-        "id": "pdf-merge",
-        "icon": "files",
-        "name": "Unir PDFs",
-        "description": "Combina varios PDFs"
-      },
-      {
-        "id": "pdf-split",
-        "icon": "scissors",
-        "name": "Dividir PDF",
-        "description": "Extrae páginas"
-      },
-      {
-        "id": "pdf-img2pdf",
-        "icon": "image-plus",
-        "name": "Imágenes a PDF",
-        "description": "Crea PDF desde imágenes"
-      },
-      {
-        "id": "pdf-pdf2img",
-        "icon": "images",
-        "name": "PDF a Imágenes",
-        "description": "Convierte páginas a PNG"
-      },
-      {
-        "id": "pdf-rotate",
-        "icon": "rotate-cw",
-        "name": "Rotar PDF",
-        "description": "Gira páginas del PDF"
-      },
-      {
-        "id": "pdf-remove",
-        "icon": "trash-2",
-        "name": "Eliminar Páginas",
-        "description": "Borra páginas del PDF"
-      },
-      {
-        "id": "pdf-text",
-        "icon": "type",
-        "name": "Extraer Texto",
-        "description": "Extrae texto del PDF"
       }
     ]
   }
