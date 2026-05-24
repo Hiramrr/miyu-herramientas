@@ -16,6 +16,12 @@
   import VideoDownloader from './VideoDownloader.svelte';
 
   onMount(async () => {
+    window.onerror = (msg, url, line) => {
+      console.error('App error:', msg, url, line);
+    };
+    window.onunhandledrejection = (event) => {
+      console.error('Unhandled rejection:', event.reason);
+    };
     await import('../scripts/app.js');
   });
 </script>

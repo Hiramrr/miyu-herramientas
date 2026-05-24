@@ -24,10 +24,6 @@
     if (!isProcessing) fileInput?.click();
   }
 
-  function backToList() {
-    if (window.showTool) window.showTool(null);
-  }
-
   async function refreshIcons() {
     await tick();
     if (window.lucide?.createIcons) window.lucide.createIcons();
@@ -67,7 +63,7 @@
     const { pipeline, env } = await import('@huggingface/transformers');
 
     env.allowLocalModels = false;
-    env.useBrowserCache = false;
+    env.useBrowserCache = true;
 
     const progress_callback = (event) => {
       if (event.status === 'progress' && Number.isFinite(event.progress)) {

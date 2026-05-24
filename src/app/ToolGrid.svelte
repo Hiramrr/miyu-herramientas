@@ -2,7 +2,11 @@
   import { toolSections } from '../tools/registry.js';
 
   function handleClick(toolId) {
-    if (window.showTool) window.showTool(toolId);
+    if (window.showTool) return window.showTool(toolId);
+    const retry = setInterval(() => {
+      if (window.showTool) { clearInterval(retry); window.showTool(toolId); }
+    }, 50);
+    setTimeout(() => clearInterval(retry), 3000);
   }
 </script>
 

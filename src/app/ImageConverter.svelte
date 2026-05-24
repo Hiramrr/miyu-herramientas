@@ -35,10 +35,6 @@
     if (status !== 'processing') fileInput?.click();
   }
 
-  function backToList() {
-    if (window.showTool) window.showTool(null);
-  }
-
   async function refreshIcons() {
     await tick();
     if (window.lucide?.createIcons) window.lucide.createIcons();
