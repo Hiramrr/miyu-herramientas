@@ -222,9 +222,6 @@
 
 <div class="tool-panel" id="panel-bgremove">
   <div class="panel-header">
-    <button class="back-btn" type="button" onclick={backToList}>
-      <i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver
-    </button>
     <h2><i data-lucide="eraser"></i> Quitar Fondo</h2>
     <p>Elimina el fondo de fotos en tu navegador con BRIA RMBG-1.4</p>
   </div>

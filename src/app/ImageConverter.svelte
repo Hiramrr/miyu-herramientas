@@ -173,9 +173,6 @@
 
 <div class="tool-panel" id="panel-image-convert">
   <div class="panel-header">
-    <button class="back-btn" type="button" onclick={backToList}>
-      <i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver
-    </button>
     <h2><i data-lucide="repeat"></i> Convertir Imagen</h2>
     <p>Cambia imágenes entre PNG, JPEG y WebP directamente en tu navegador</p>
   </div>

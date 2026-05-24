@@ -164,7 +164,6 @@
 
 <div class="tool-panel" id="panel-palette">
   <div class="panel-header">
-    <button class="back-btn" type="button" on:click={() => window.showTool?.(null)}><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</button>
     <h2><i data-lucide="palette"></i> Generación de paletas de colores</h2>
     <p>Genera paletas con estrategias OKLCH, bloquea colores y exporta resultados listos para usar</p>
   </div>

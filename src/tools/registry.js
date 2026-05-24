@@ -76,6 +76,24 @@ export const toolSections = [
         "description": "PNG JPEG WebP"
       },
       {
+        "id": "image-optimize",
+        "icon": "sliders-horizontal",
+        "name": "Optimizar Imagen",
+        "description": "Redimensiona y comprime"
+      },
+      {
+        "id": "image-editor",
+        "icon": "scan-line",
+        "name": "Editor de Imagen",
+        "description": "Ajustes y rotación"
+      },
+      {
+        "id": "favicon",
+        "icon": "badge",
+        "name": "Favicon / App Icons",
+        "description": "Iconos desde imagen"
+      },
+      {
         "id": "ascii",
         "icon": "image",
         "name": "ASCII",
@@ -112,6 +130,12 @@ export const toolSections = [
         "description": "Extrae páginas"
       },
       {
+        "id": "pdf-organize",
+        "icon": "list-ordered",
+        "name": "Ordenar PDF",
+        "description": "Reordena páginas"
+      },
+      {
         "id": "pdf-img2pdf",
         "icon": "image-plus",
         "name": "Imágenes a PDF",
@@ -128,6 +152,36 @@ export const toolSections = [
         "icon": "rotate-cw",
         "name": "Rotar PDF",
         "description": "Gira páginas del PDF"
+      },
+      {
+        "id": "pdf-page-numbers",
+        "icon": "list-plus",
+        "name": "Números de página",
+        "description": "Numera páginas"
+      },
+      {
+        "id": "pdf-sign",
+        "icon": "signature",
+        "name": "Firmar PDF",
+        "description": "Firma visible local"
+      },
+      {
+        "id": "pdf-crop",
+        "icon": "crop",
+        "name": "Recortar PDF",
+        "description": "Recorta márgenes"
+      },
+      {
+        "id": "pdf-watermark",
+        "icon": "stamp",
+        "name": "Marca de agua",
+        "description": "Texto sobre PDF"
+      },
+      {
+        "id": "pdf-metadata",
+        "icon": "info",
+        "name": "Metadatos PDF",
+        "description": "Edita título y autor"
       },
       {
         "id": "pdf-remove",
@@ -152,6 +206,12 @@ export const toolSections = [
         "icon": "braces",
         "name": "JSON",
         "description": "Formatea y minifica"
+      },
+      {
+        "id": "csv-json",
+        "icon": "table",
+        "name": "CSV ↔ JSON",
+        "description": "Convierte datos"
       },
       {
         "id": "html",

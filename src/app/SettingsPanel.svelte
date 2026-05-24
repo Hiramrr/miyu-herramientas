@@ -63,6 +63,35 @@
     </div>
 
     <div class="settings-section">
+      <div class="settings-label">Navegación</div>
+      <label class="toggle-row">
+        <span class="toggle-label">Recordar última herramienta</span>
+        <input type="checkbox" class="toggle-input" id="setting-remember-tool" checked>
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Mostrar favoritas y recientes</span>
+        <input type="checkbox" class="toggle-input" id="setting-quick-access" checked>
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Favoritas arriba en el menú</span>
+        <input type="checkbox" class="toggle-input" id="setting-sidebar-favorites" checked>
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Cerrar menú al elegir en celular</span>
+        <input type="checkbox" class="toggle-input" id="setting-close-mobile" checked>
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Enfocar primer campo en computadora</span>
+        <input type="checkbox" class="toggle-input" id="setting-autofocus" checked>
+        <span class="toggle-switch"></span>
+      </label>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-label">Interfaz</div>
       <label class="toggle-row">
         <span class="toggle-label">Cuadrícula de fondo</span>
@@ -72,6 +101,16 @@
       <label class="toggle-row">
         <span class="toggle-label">Densidad compacta</span>
         <input type="checkbox" class="toggle-input" id="setting-compact">
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Controles grandes</span>
+        <input type="checkbox" class="toggle-input" id="setting-large-controls">
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Contenido amplio</span>
+        <input type="checkbox" class="toggle-input" id="setting-wide-content">
         <span class="toggle-switch"></span>
       </label>
       <label class="toggle-row">

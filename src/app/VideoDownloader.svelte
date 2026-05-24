@@ -76,7 +76,6 @@
 
 <div class="tool-panel" id="panel-video-download">
   <div class="panel-header">
-    <button class="back-btn" type="button" on:click={() => window.showTool?.(null)}><i data-lucide="arrow-left" style="width:14px;height:14px"></i> Volver</button>
     <h2><i data-lucide="download"></i> Descargar Video</h2>
     <p>Genera comandos yt-dlp para guardar videos de YouTube, TikTok y otros sitios compatibles</p>
   </div>
