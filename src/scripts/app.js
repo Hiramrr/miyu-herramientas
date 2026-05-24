@@ -504,7 +504,7 @@ setupToolNavigation();
       var output = document.getElementById('diff-output');
       if (!panel || !original || !next || !output || document.getElementById('diff-summary')) return;
       var labels = panel.querySelectorAll('label');
-      labels.forEach(function(label) { label.classList.add('diff-legacy-label'); });
+      labels.forEach(function(label) { label.classList.add('diff-legacy-label'); label.removeAttribute('style'); });
       var fields = document.createElement('div');
       fields.className = 'diff-input-grid';
       var leftField = document.createElement('div');
@@ -528,6 +528,12 @@ setupToolNavigation();
       if (compareButton) {
         compareButton.removeAttribute('onclick');
         compareButton.addEventListener('click', renderSideBySideDiff);
+        if (!compareButton.parentElement.classList.contains('btn-row')) {
+          var btnRow = document.createElement('div');
+          btnRow.className = 'btn-row';
+          compareButton.parentElement.insertBefore(btnRow, compareButton);
+          btnRow.appendChild(compareButton);
+        }
       }
       original.addEventListener('input', renderSideBySideDiff);
       next.addEventListener('input', renderSideBySideDiff);
