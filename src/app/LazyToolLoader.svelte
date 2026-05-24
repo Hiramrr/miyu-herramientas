@@ -1,23 +1,9 @@
 <script>
   import { activeTool } from '../tools/activeTool.svelte.js';
   import { toolLoaders } from '../tools/lazyImports.js';
-  import { tick } from 'svelte';
+  import PanelActivator from './PanelActivator.svelte';
 
   let currentId = $derived(activeTool.id);
-
-  $effect(() => {
-    const id = currentId;
-    if (!id) return;
-    tick().then(() => {
-      requestAnimationFrame(() => {
-        const panel = document.getElementById('panel-' + id);
-        if (panel && !panel.classList.contains('active')) {
-          document.querySelectorAll('.tool-panel').forEach((p) => p.classList.remove('active'));
-          panel.classList.add('active');
-        }
-      });
-    });
-  });
 </script>
 
 {#if currentId && toolLoaders[currentId]}
@@ -34,6 +20,7 @@
     </div>
   {:then { default: Component }}
     <Component />
+    <PanelActivator toolId={currentId} />
   {:catch error}
     <div class="tool-panel active" id="panel-lazy-error">
       <div class="panel-header">
