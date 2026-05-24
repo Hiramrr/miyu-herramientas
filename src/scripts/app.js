@@ -1,4 +1,7 @@
 import { toolSections } from '../tools/registry.js';
+import { setActiveTool } from '../tools/activeTool.svelte.js';
+import { toolLoaders } from '../tools/lazyImports.js';
+
 
 setupToolNavigation();
     setupSearchFilter();
@@ -114,6 +117,7 @@ setupToolNavigation();
       });
     }
     function showTool(t) {
+      setActiveTool(t);
       var gridPanel = document.getElementById('panel-tool-grid');
       if (!t) {
         document.querySelectorAll('.tool-item').forEach(function(i) { i.classList.remove('active'); });
@@ -135,11 +139,12 @@ setupToolNavigation();
       }
       var item = t ? document.querySelector('.tool-item[data-tool="' + t + '"]') : null;
       var panel = t ? document.getElementById('panel-' + t) : null;
-      if (!item || !panel) return;
+      if (!item) return;
+      if (!panel && !toolLoaders[t]) return;
       document.querySelectorAll('.tool-item').forEach(function(i) { i.classList.remove('active'); });
       document.querySelectorAll('.tool-panel').forEach(function(p) { p.classList.remove('active'); });
       item.classList.add('active');
-      panel.classList.add('active');
+      if (panel) panel.classList.add('active');
       var titleEl = document.getElementById('app-header-title');
       if (titleEl && item) {
         titleEl.textContent = item.querySelector('.tool-name').textContent;
@@ -151,10 +156,10 @@ setupToolNavigation();
       updateFavoriteButtons();
       renderQuickAccess();
       scrollActiveToolIntoView();
-      focusFirstPanelControl(panel);
+      if (panel) focusFirstPanelControl(panel);
       document.title = item.querySelector('.tool-name').textContent + ' - miyu-herramientas';
       if (window.matchMedia('(max-width: 768px)').matches) {
-        panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        if (panel) panel.scrollIntoView({ block: 'start', behavior: 'smooth' });
         if (localStorage.getItem('mh-close-mobile') !== '0') {
           document.body.classList.remove('sidebar-open');
         }
