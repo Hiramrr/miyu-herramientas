@@ -812,7 +812,7 @@ setupToolNavigation();
         return;
       }
       var last = localStorage.getItem('mh-active-tool');
-      if (last && document.getElementById('panel-' + last)) {
+      if (last && (document.getElementById('panel-' + last) || toolLoaders[last])) {
         showTool(last);
       } else {
         showTool(null);

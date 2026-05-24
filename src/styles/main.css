@@ -30,6 +30,7 @@
     .main { flex: none; width: calc(100vw - 260px); margin-left: 260px; padding: 48px 48px 48px 64px; min-height: 100vh; max-width: none; }
     .tool-panel { display: none; }
     .tool-panel.active { display: block; animation: fadeIn 0.18s ease; }
+    .tool-panel[id^="panel-lazy-"] { display: block; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .panel-header { margin-bottom: 32px; }
     .panel-header h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }

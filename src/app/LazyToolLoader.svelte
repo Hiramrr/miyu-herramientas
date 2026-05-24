@@ -6,30 +6,33 @@
 
   $effect(() => {
     const id = currentId;
-    const _trigger = activeTool.trigger; // re-run even if id hasn't changed
+    const _trigger = activeTool.trigger;
     if (!id) return;
-
-    // If a legacy panel exists, showTool already activated it.
-    // If this is a lazy-loaded tool, wait for its panel to appear in the DOM.
-    const legacyPanel = document.getElementById('panel-' + id);
-    if (legacyPanel) return;
 
     const loader = toolLoaders[id];
     if (!loader) return;
 
-    // Panel may already be mounted from a previous visit
+    // Hide grid panel when a lazy tool is active
+    const gridPanel = document.getElementById('panel-tool-grid');
+    if (gridPanel) gridPanel.classList.remove('active');
+
+    // If panel already exists (second visit), activate it immediately
     const existing = document.getElementById('panel-' + id);
     if (existing) {
-      document.querySelectorAll('.tool-panel').forEach((p) => p.classList.remove('active'));
+      document.querySelectorAll('.tool-panel').forEach((p) => {
+        if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
+      });
       existing.classList.add('active');
       return;
     }
 
-    // Wait for the lazy component to mount and insert its panel
+    // Wait for component to mount and insert its panel
     const observer = new MutationObserver(() => {
       const panel = document.getElementById('panel-' + id);
       if (panel) {
-        document.querySelectorAll('.tool-panel').forEach((p) => p.classList.remove('active'));
+        document.querySelectorAll('.tool-panel').forEach((p) => {
+          if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
+        });
         panel.classList.add('active');
         observer.disconnect();
       }
@@ -44,7 +47,7 @@
 {#key currentId}
   {#if currentId && toolLoaders[currentId]}
     {#await toolLoaders[currentId]()}
-      <div class="tool-panel active" id="panel-lazy-loading">
+      <div class="tool-panel" id="panel-lazy-loading">
         <div class="panel-header">
           <h2><span class="lazy-spinner"></span> Cargando herramienta...</h2>
           <p>Descargando recursos necesarios, esto tomará solo un momento.</p>
@@ -56,6 +59,17 @@
       </div>
     {:then { default: Component }}
       <Component />
+    {:catch error}
+      <div class="tool-panel" id="panel-lazy-error">
+        <div class="panel-header">
+          <h2><i data-lucide="alert-circle"></i> Error al cargar</h2>
+          <p>No se pudo cargar la herramienta seleccionada.</p>
+        </div>
+        <div class="output" style="border-color: #e0a8a8; background: #fff4f2; color: #9a483d;">
+          <p style="font-weight: 600;">Detalles técnicos:</p>
+          <pre style="font-size: 0.8rem; margin-top: 8px; overflow: auto;">{error.message}</pre>
+        </div>
+      </div>
     {/await}
   {/if}
 {/key}
