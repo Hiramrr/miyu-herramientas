@@ -3,6 +3,18 @@
   import { toolLoaders } from '../tools/lazyImports.js';
 
   let currentId = $derived(activeTool.id);
+  let iconFrame = null;
+
+  function refreshLucideIcons() {
+    if (iconFrame) cancelAnimationFrame(iconFrame);
+    iconFrame = requestAnimationFrame(() => {
+      iconFrame = null;
+      if (!document.querySelector('i[data-lucide]')) return;
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    });
+  }
 
   $effect(() => {
     const id = currentId;
@@ -11,6 +23,17 @@
 
     const loader = toolLoaders[id];
     if (!loader) return;
+    let panelIconObserver = null;
+
+    function activatePanel(panel) {
+      document.querySelectorAll('.tool-panel').forEach((p) => {
+        if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
+      });
+      panel.classList.add('active');
+      refreshLucideIcons();
+      panelIconObserver = new MutationObserver(refreshLucideIcons);
+      panelIconObserver.observe(panel, { childList: true, subtree: true });
+    }
 
     // Hide grid panel when a lazy tool is active
     const gridPanel = document.getElementById('panel-tool-grid');
@@ -19,28 +42,27 @@
     // If panel already exists (second visit), activate it immediately
     const existing = document.getElementById('panel-' + id);
     if (existing) {
-      document.querySelectorAll('.tool-panel').forEach((p) => {
-        if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
-      });
-      existing.classList.add('active');
-      return;
+      activatePanel(existing);
+      return () => panelIconObserver?.disconnect();
     }
 
     // Wait for component to mount and insert its panel
     const observer = new MutationObserver(() => {
+      refreshLucideIcons();
       const panel = document.getElementById('panel-' + id);
       if (panel) {
-        document.querySelectorAll('.tool-panel').forEach((p) => {
-          if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
-        });
-        panel.classList.add('active');
+        activatePanel(panel);
         observer.disconnect();
       }
     });
 
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      panelIconObserver?.disconnect();
+      if (iconFrame) cancelAnimationFrame(iconFrame);
+    };
   });
 </script>
 
