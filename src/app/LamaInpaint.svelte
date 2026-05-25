@@ -26,7 +26,7 @@
   let lastPoint = null;
 
   $: isProcessing = status === 'downloading' || status === 'loading' || status === 'processing';
-  $: actionLabel = resultImage ? 'Generar de nuevo' : 'Reparar zona pintada';
+  $: actionLabel = status === 'done' ? 'Generar de nuevo' : 'Reparar imagen';
 
   onDestroy(() => {
     sourceBitmap?.close?.();
