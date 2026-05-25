@@ -2,14 +2,15 @@
   import { onDestroy, tick } from 'svelte';
   import {
     configureOnnxWasm,
+    isAppleMobile,
     mobileAiErrorMessage,
     supportsWebGpu,
   } from '../tools/browserAiRuntime.js';
 
-  const modelUrl = 'https://huggingface.co/IsGarrido/LaMa-ONNX/resolve/main/lama_fp32.onnx';
-  const modelSizeMb = 208;
+  const modelUrl = 'https://huggingface.co/opencv/inpainting_lama/resolve/main/inpainting_lama_2025jan.onnx';
+  const modelSizeMb = 92;
   const inputSize = 512;
-  const modelCacheName = 'miyu-lama-models-v1';
+  const modelCacheName = 'miyu-lama-models-v2';
 
   let sourceImage = null;
   let resultImage = null;
@@ -109,6 +110,10 @@
 
     status = 'loading';
     message = 'Inicializando modelo...';
+    const sessionOptions = {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: isAppleMobile() ? 'disabled' : 'all',
+    };
 
     if (canUseWebGpu) {
       try {
@@ -123,17 +128,15 @@
       }
     }
 
-    session = await ortRuntime.InferenceSession.create(modelBytes, {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all',
-    });
+    session = await ortRuntime.InferenceSession.create(modelBytes, sessionOptions);
     backend = 'WASM';
 
     return session;
   }
 
   async function fetchModelBytes() {
-    const cachedResponse = await getCachedModelResponse();
+    const skipCache = isAppleMobile();
+    const cachedResponse = skipCache ? null : await getCachedModelResponse();
     if (cachedResponse) {
       progress = 100;
       message = 'Cargando LaMa ONNX desde caché...';
@@ -145,9 +148,10 @@
     if (!response.ok) throw new Error('No se pudo descargar el modelo LaMa.');
 
     const total = Number(response.headers.get('content-length')) || 0;
-    if (!response.body) {
+    if (skipCache || !response.body) {
       const bytes = new Uint8Array(await response.arrayBuffer());
-      await cacheModelBytes(bytes);
+      if (!skipCache) await cacheModelBytes(bytes);
+      progress = 100;
       return bytes;
     }
 
