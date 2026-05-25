@@ -766,7 +766,7 @@
   async function readPdf(file) {
     if (!file) throw new Error('Selecciona un PDF primero.');
     const { PDFDocument } = getPdfLib();
-    return PDFDocument.load(await file.arrayBuffer());
+    return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
   }
 
   async function organizePdf(mode = 'custom') {

@@ -104,6 +104,12 @@ export const toolSections = [
         "icon": "eraser",
         "name": "Quitar Fondo",
         "description": "Elimina fondos de fotos"
+      },
+      {
+        "id": "lama-inpaint",
+        "icon": "paintbrush",
+        "name": "Reparar con LaMa",
+        "description": "Inpainting local ONNX"
       }
     ]
   },

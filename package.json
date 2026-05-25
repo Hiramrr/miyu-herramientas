@@ -26,6 +26,7 @@
     "prettier-plugin-svelte": "^4.0.1",
     "svelte": "^5.55.9",
     "svelte-check": "^4.4.8",
+    "svelte-eslint-parser": "^1.6.1",
     "vite": "^8.0.13",
     "vitest": "^4.1.7"
   },
@@ -38,6 +39,7 @@
     ]
   },
   "dependencies": {
-    "@huggingface/transformers": "^3.8.1"
+    "@huggingface/transformers": "^3.8.1",
+    "onnxruntime-web": "^1.26.0"
   }
 }

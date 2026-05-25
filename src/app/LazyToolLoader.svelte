@@ -31,6 +31,9 @@
       });
       panel.classList.add('active');
       refreshLucideIcons();
+      if (typeof window.setupFilePickers === 'function') {
+        window.setupFilePickers();
+      }
       panelIconObserver = new MutationObserver(refreshLucideIcons);
       panelIconObserver.observe(panel, { childList: true, subtree: true });
     }
