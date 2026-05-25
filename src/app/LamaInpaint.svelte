@@ -1,5 +1,10 @@
 <script>
   import { onDestroy, tick } from 'svelte';
+  import {
+    configureOnnxWasm,
+    mobileAiErrorMessage,
+    supportsWebGpu,
+  } from '../tools/browserAiRuntime.js';
 
   const modelUrl = 'https://huggingface.co/IsGarrido/LaMa-ONNX/resolve/main/lama_fp32.onnx';
   const modelSizeMb = 208;
@@ -96,26 +101,33 @@
     progress = 0;
 
     const modelBytes = await fetchModelBytes();
-    ortRuntime = await import('onnxruntime-web/webgpu');
-    ortRuntime.env.wasm.numThreads = Math.min(4, navigator.hardwareConcurrency || 4);
+    const canUseWebGpu = await supportsWebGpu();
+    ortRuntime = canUseWebGpu
+      ? await import('onnxruntime-web/webgpu')
+      : await import('onnxruntime-web');
+    configureOnnxWasm(ortRuntime.env);
 
     status = 'loading';
     message = 'Inicializando modelo...';
 
-    try {
-      session = await ortRuntime.InferenceSession.create(modelBytes, {
-        executionProviders: ['webgpu'],
-        graphOptimizationLevel: 'all',
-      });
-      backend = 'WebGPU';
-    } catch (error) {
-      console.info('WebGPU no disponible para LaMa, usando WASM.', error);
-      session = await ortRuntime.InferenceSession.create(modelBytes, {
-        executionProviders: ['wasm'],
-        graphOptimizationLevel: 'all',
-      });
-      backend = 'WASM';
+    if (canUseWebGpu) {
+      try {
+        session = await ortRuntime.InferenceSession.create(modelBytes, {
+          executionProviders: ['webgpu'],
+          graphOptimizationLevel: 'all',
+        });
+        backend = 'WebGPU';
+        return session;
+      } catch (error) {
+        console.info('WebGPU no disponible para LaMa, usando WASM.', error);
+      }
     }
+
+    session = await ortRuntime.InferenceSession.create(modelBytes, {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: 'all',
+    });
+    backend = 'WASM';
 
     return session;
   }
@@ -209,7 +221,7 @@
     } catch (error) {
       console.error('No se pudo reparar la imagen con LaMa:', error);
       status = 'error';
-      message = error instanceof Error ? error.message : 'No se pudo procesar la imagen.';
+      message = mobileAiErrorMessage(error);
     }
   }
 

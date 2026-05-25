@@ -1,5 +1,10 @@
 <script>
   import { onDestroy, tick } from 'svelte';
+  import {
+    configureOnnxWasm,
+    mobileAiErrorMessage,
+    supportsWebGpu,
+  } from '../tools/browserAiRuntime.js';
 
   const modelId = 'briaai/RMBG-1.4';
 
@@ -64,6 +69,7 @@
 
     env.allowLocalModels = false;
     env.useBrowserCache = true;
+    configureOnnxWasm(env.backends?.onnx);
 
     const progress_callback = (event) => {
       if (event.status === 'progress' && Number.isFinite(event.progress)) {
@@ -71,19 +77,32 @@
       }
     };
 
+    const canUseWebGpu = await supportsWebGpu();
+    let webGpuError = null;
+
+    if (canUseWebGpu) {
+      try {
+        pipelineInstance = await pipeline('image-segmentation', modelId, {
+          device: 'webgpu',
+          dtype: 'fp32',
+          progress_callback,
+        });
+        return pipelineInstance;
+      } catch (error) {
+        webGpuError = error;
+        console.info('WebGPU no disponible, usando WASM para quitar fondo.', error);
+      }
+    }
+
     try {
-      pipelineInstance = await pipeline('image-segmentation', modelId, {
-        device: 'webgpu',
-        dtype: 'fp32',
-        progress_callback,
-      });
-    } catch (error) {
-      console.info('WebGPU no disponible, usando WASM para quitar fondo.', error);
       pipelineInstance = await pipeline('image-segmentation', modelId, {
         device: 'wasm',
         dtype: 'fp32',
         progress_callback,
       });
+    } catch (error) {
+      console.info('WASM no pudo iniciar el modelo para quitar fondo.', error);
+      throw webGpuError || error;
     }
 
     return pipelineInstance;
@@ -115,7 +134,7 @@
     } catch (error) {
       console.error('No se pudo quitar el fondo:', error);
       status = 'error';
-      message = error instanceof Error ? error.message : 'No se pudo procesar la imagen.';
+      message = mobileAiErrorMessage(error);
     }
   }
 
