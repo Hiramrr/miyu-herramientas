@@ -81,6 +81,24 @@
     .sidebar-toggle { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); color: var(--muted); cursor: pointer; flex-shrink: 0; }
     .sidebar-toggle:hover { background: var(--tool-hover); color: var(--ink); }
     .sidebar-toggle svg { width: 18px; height: 18px; }
+    .app-header-back {
+      display: none;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .app-header-back:hover { background: var(--tool-hover); color: var(--ink); }
+    .app-header-back svg { width: 18px; height: 18px; }
+    @media (max-width: 768px) {
+      .app-header-back { display: inline-flex; }
+    }
     .sidebar, .main { transition: width 0.25s ease, margin-left 0.25s ease, opacity 0.25s ease, transform 0.25s ease; }
     body.sidebar-collapsed .sidebar { transform: translateX(-100%); pointer-events: none; opacity: 0; }
     body.sidebar-collapsed .main { width: 100%; margin-left: 0; }
@@ -1475,6 +1493,62 @@
     #panel-pdf-text .btn-green:hover { background: #a8c4a8; }
     #panel-pdf-text .progress-bar { background: #b8a090; }
 
+    /* Base64 - indigo */
+    .tool-item[data-tool="base64"] svg { color: #7c8cd4; }
+    .tool-item[data-tool="base64"].active { background: #7c8cd4; }
+    #panel-base64 .panel-header h2 svg { color: #7c8cd4; }
+    #panel-base64 .btn-green { background: #276437; }
+    #panel-base64 .btn-green:hover { background: #3d8a50; }
+    .base64-file-zone {
+      width: 100%;
+      min-height: 140px;
+      border: 2px dashed var(--line);
+      border-radius: var(--radius);
+      background: var(--surface-strong);
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      font: inherit;
+      text-align: center;
+      padding: 20px;
+      transition: border-color .16s, background .16s, transform .16s;
+      margin-bottom: 14px;
+    }
+    .base64-file-zone:hover,
+    .base64-file-zone:focus-visible {
+      border-color: #7c8cd4;
+      background: var(--tool-hover);
+      transform: translateY(-1px);
+    }
+    .base64-file-zone svg { width: 30px; height: 30px; color: #7c8cd4; }
+    .base64-file-zone strong { color: var(--ink); font-size: .9rem; }
+    .base64-file-zone span { font-size: .75rem; }
+    .base64-file-zone.has-file { border-color: #7c8cd4; border-style: solid; }
+    .base64-file-input { display: none; }
+    .base64-error {
+      min-height: auto;
+      border-color: var(--error-border) !important;
+      background: var(--error-bg) !important;
+      color: var(--error-text) !important;
+    }
+    .output-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 11px 14px;
+      border: 1.5px solid var(--line);
+      border-radius: var(--radius);
+      font-size: .86rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      background: var(--surface);
+      color: var(--ink);
+      resize: vertical;
+    }
+    .output-label { margin-top: 16px; }
+
     /* Delphi.tools inspired visual theme */
     :root {
       --bg: #faf9f5;
@@ -2867,6 +2941,15 @@
       border-color: var(--accent);
     }
 
+    body.sticky-output .output {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      max-height: 40vh;
+      overflow: auto;
+      box-shadow: 0 -4px 12px rgba(0,0,0,.06);
+    }
+
     .btn-small {
       padding: 9px 14px;
       font-size: .76rem;
@@ -2880,30 +2963,188 @@
       line-height: 1.4;
     }
 
-    body.no-grid {
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 8px 0;
+    }
+
+    .range-row input[type="range"] {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .range-value {
+      min-width: 48px;
+      text-align: right;
+      font-size: .8rem;
+      font-weight: 700;
+      color: var(--ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .settings-btn-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .settings-btn-grid .base-btn {
+      min-height: 34px;
+      padding: 6px 4px;
+      font-size: .7rem;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .settings-btn-grid .base-btn.active {
+      background: var(--accent-soft) !important;
+      border-color: var(--accent) !important;
+      color: var(--accent) !important;
+    }
+
+    .custom-theme-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .custom-theme-grid label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 0;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+      font-size: .72rem;
+      font-weight: 600;
+    }
+
+    .custom-theme-grid input[type="color"] {
+      width: 36px;
+      height: 30px;
+      padding: 2px;
+      border: 1px solid var(--line) !important;
+      border-radius: 6px !important;
+      cursor: pointer;
+    }
+
+    .auto-theme-controls {
+      margin-top: 10px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--surface);
+    }
+
+    .auto-theme-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .auto-theme-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .auto-theme-row label {
+      width: 100px;
+      flex-shrink: 0;
+      margin: 0;
+      font-size: .72rem;
+      font-weight: 600;
+    }
+
+    .auto-theme-row select,
+    .auto-theme-row input[type="time"] {
+      flex: 1;
+      min-height: 34px;
+      padding: 4px 8px;
+      font-size: .78rem;
+    }
+
+    body.grid-style-lines {
+      background:
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px),
+        linear-gradient(var(--grid-line) 1px, transparent 1px),
+        var(--bg);
+      background-size: 32px 32px;
+    }
+
+    body.grid-style-dots {
+      background-image: radial-gradient(circle, color-mix(in srgb, var(--ink) 14%, transparent) 1.5px, transparent 1.5px);
+      background-size: 24px 24px;
+      background-color: var(--bg);
+    }
+
+    body.grid-style-checkerboard {
+      background-image:
+        linear-gradient(45deg, color-mix(in srgb, var(--ink) 6%, transparent) 25%, transparent 25%),
+        linear-gradient(-45deg, color-mix(in srgb, var(--ink) 6%, transparent) 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, color-mix(in srgb, var(--ink) 6%, transparent) 75%),
+        linear-gradient(-45deg, transparent 75%, color-mix(in srgb, var(--ink) 6%, transparent) 75%);
+      background-size: 40px 40px;
+      background-color: var(--bg);
+      background-position: 0 0, 0 20px, 20px -20px, -20px 0;
+    }
+
+    body.grid-style-none {
       background: var(--bg);
     }
 
-    body.compact-ui .tool-item {
-      padding: 5px 8px;
-      min-height: 28px;
+    body.theme-density-compact .tool-item {
+      padding: 4px 8px;
+      min-height: 26px;
       gap: 6px;
     }
 
-    body.compact-ui .tool-name {
+    body.theme-density-compact .tool-name {
+      font-size: .72rem;
+    }
+
+    body.theme-density-compact .tool-desc {
+      font-size: .6rem;
+    }
+
+    body.theme-density-compact .main {
+      padding: 20px 24px 32px;
+    }
+
+    body.theme-density-compact .panel-header {
+      margin-bottom: 14px;
+    }
+
+    body.theme-density-compact .settings-section {
+      margin-bottom: 18px;
+    }
+
+    body.theme-density-compact .settings-body {
+      padding: 14px;
+    }
+
+    body.theme-density-comfortable .tool-item {
+      padding: 10px 12px;
+      min-height: 40px;
+      gap: 10px;
+    }
+
+    body.theme-density-comfortable .tool-name {
+      font-size: .88rem;
+    }
+
+    body.theme-density-comfortable .tool-desc {
       font-size: .74rem;
     }
 
-    body.compact-ui .tool-desc {
-      font-size: .62rem;
+    body.theme-density-comfortable .main {
+      padding: 48px 56px 64px;
     }
 
-    body.compact-ui .main {
-      padding: 28px 28px 40px;
-    }
-
-    body.compact-ui .panel-header {
-      margin-bottom: 18px;
+    body.theme-density-comfortable .panel-header {
+      margin-bottom: 32px;
     }
 
     body.large-controls .btn,
@@ -2947,25 +3188,67 @@
       display: none;
     }
 
-    body.large-text {
-      font-size: 1.06rem;
-    }
+    body.text-xs { font-size: .82rem; }
+    body.text-sm { font-size: .92rem; }
+    body.text-md { font-size: 1rem; }
+    body.text-lg { font-size: 1.08rem; }
+    body.text-xl { font-size: 1.18rem; }
 
-    body.large-text .tool-name,
-    body.large-text .app-header-title,
-    body.large-text label,
-    body.large-text input,
-    body.large-text textarea,
-    body.large-text select,
-    body.large-text .btn {
-      font-size: 1rem;
-    }
+    body.text-xs .tool-name,
+    body.text-xs .app-header-title,
+    body.text-xs label,
+    body.text-xs input,
+    body.text-xs textarea,
+    body.text-xs select,
+    body.text-xs .btn { font-size: .72rem; }
 
-    body.large-text .tool-desc,
-    body.large-text .settings-hint,
-    body.large-text .command-item small {
-      font-size: .82rem;
-    }
+    body.text-sm .tool-name,
+    body.text-sm .app-header-title,
+    body.text-sm label,
+    body.text-sm input,
+    body.text-sm textarea,
+    body.text-sm select,
+    body.text-sm .btn { font-size: .82rem; }
+
+    body.text-md .tool-name,
+    body.text-md .app-header-title,
+    body.text-md label,
+    body.text-md input,
+    body.text-md textarea,
+    body.text-md select,
+    body.text-md .btn { font-size: .92rem; }
+
+    body.text-lg .tool-name,
+    body.text-lg .app-header-title,
+    body.text-lg label,
+    body.text-lg input,
+    body.text-lg textarea,
+    body.text-lg select,
+    body.text-lg .btn { font-size: 1rem; }
+
+    body.text-xl .tool-name,
+    body.text-xl .app-header-title,
+    body.text-xl label,
+    body.text-xl input,
+    body.text-xl textarea,
+    body.text-xl select,
+    body.text-xl .btn { font-size: 1.1rem; }
+
+    body.text-xs .tool-desc,
+    body.text-xs .settings-hint,
+    body.text-xs .command-item small { font-size: .66rem; }
+    body.text-sm .tool-desc,
+    body.text-sm .settings-hint,
+    body.text-sm .command-item small { font-size: .72rem; }
+    body.text-md .tool-desc,
+    body.text-md .settings-hint,
+    body.text-md .command-item small { font-size: .78rem; }
+    body.text-lg .tool-desc,
+    body.text-lg .settings-hint,
+    body.text-lg .command-item small { font-size: .84rem; }
+    body.text-xl .tool-desc,
+    body.text-xl .settings-hint,
+    body.text-xl .command-item small { font-size: .9rem; }
 
     body.high-contrast {
       --muted: var(--ink);
@@ -3430,7 +3713,7 @@
     }
 
     textarea {
-      min-height: 112px;
+      min-height: var(--textarea-min-height, 112px);
       line-height: 1.55;
     }
 

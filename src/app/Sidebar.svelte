@@ -1,20 +1,21 @@
 <script>
   import { toolSections } from '../tools/registry.js';
+  import { activeTool } from '../tools/activeTool.svelte.js';
 </script>
 
 <aside class="sidebar">
   <div class="sidebar-header">
     <pre class="brand-ascii" aria-hidden="true"> ▒▒▒▒         ▒▒▒▒
- ▒▒▒▒▒▒▒░░░░░░▒▒▒▒
-   ▒▒░░░▒▒▒░░▒▒▒░▒▒
-   ▒▒▓▒▓▒░░░░▒▒▓█▓▒
-  ▒░▒▓▓▓▒▒▒░░░▒▒▓▓▒▒
-  ░▒▒░░░░░░▒▒▒▒▒▒▒▒▒
-  ░░▒▒▒░░░▒▓▓▓▓▓▓▒▒▒
-  ░░░▒░░░░░▒▓▓█▓▒▒▒▒
-  ░░░░░░▒▒▒▒▒▓▓▓▓▓▓▒▒
-  ░░░░░░░▒▒▓▓▓▓▓▓▓▓
-  ░░░░░░▒▒▒▒▓▓▓▓▓▓▓</pre>
+     ▒▒▒▒▒▒▒░░░░░░▒▒▒▒
+       ▒▒░░░▒▒▒░░▒▒▒░▒▒
+       ▒▒▓▒▓▒░░░░▒▒▓█▓▒
+      ▒░▒▓▓▓▒▒▒░░░▒▒▓▓▒▒
+      ░▒▒░░░░░░▒▒▒▒▒▒▒▒▒
+      ░░▒▒▒░░░▒▓▓▓▓▓▓▒▒▒
+      ░░░▒░░░░░▒▓▓█▓▒▒▒▒
+      ░░░░░░▒▒▒▒▒▓▓▓▓▓▓▒▒
+      ░░░░░░░▒▒▓▓▓▓▓▓▓▓
+      ░░░░░░▒▒▒▒▓▓▓▓▓▓▓</pre>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <h1>miyu-herramientas</h1>
       <div style="display:flex;gap:6px">
@@ -38,6 +39,7 @@
     <div class="tool-section tool-section-home" data-section="inicio">
       <div class="tool-section-title">Inicio</div>
       <div
+        class:active={!activeTool.id}
         class="tool-item tool-home-item"
         id="tool-home-item"
         data-tool-home
@@ -60,7 +62,7 @@
         <div class="tool-section-title">{section.title}</div>
         {#each section.tools as tool}
           <div
-            class:active={tool.id === 'text'}
+            class:active={activeTool.id === tool.id}
             class="tool-item"
             data-tool={tool.id}
             role="button"

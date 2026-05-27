@@ -24,6 +24,28 @@
     { id: 'solarized-osaka', name: 'Osaka', bg: '#001f27', accent: '#2aa198' },
     { id: 'olivia', name: 'Olivia', bg: '#1c1b1a', accent: '#cba694' },
     { id: 'codex', name: 'Codex', bg: '#0d1117', accent: '#42d392' },
+    { id: 'custom', name: 'Personalizado', bg: '#ffffff', accent: '#7c5cbf' },
+  ];
+
+  const fontSizes = [
+    { id: 'xs', name: 'XS' },
+    { id: 'sm', name: 'S' },
+    { id: 'md', name: 'M' },
+    { id: 'lg', name: 'L' },
+    { id: 'xl', name: 'XL' },
+  ];
+
+  const gridStyles = [
+    { id: 'lines', name: 'Líneas' },
+    { id: 'dots', name: 'Puntos' },
+    { id: 'checkerboard', name: 'Ajedrez' },
+    { id: 'none', name: 'Ninguna' },
+  ];
+
+  const densities = [
+    { id: 'compact', name: 'Compacto' },
+    { id: 'normal', name: 'Normal' },
+    { id: 'comfortable', name: 'Cómodo' },
   ];
 </script>
 
@@ -37,6 +59,7 @@
   </div>
 
   <div class="settings-body">
+    <!-- APARIENCIA -->
     <div class="settings-section">
       <div class="settings-label">Apariencia</div>
       <div class="settings-row">
@@ -60,8 +83,57 @@
           </button>
         {/each}
       </div>
+
+      <div class="settings-row" style="margin-top:12px">
+        <span class="settings-row-label">Tamaño de fuente</span>
+      </div>
+      <div class="btn-grid settings-btn-grid" id="setting-font-size-grid">
+        {#each fontSizes as fs}
+          <button class="base-btn" data-font-size={fs.id}>{fs.name}</button>
+        {/each}
+      </div>
+
+      <div class="settings-row" style="margin-top:12px">
+        <span class="settings-row-label">Redondez de esquinas</span>
+      </div>
+      <div class="range-row">
+        <input type="range" id="setting-corner-radius" min="0" max="20" value="8" step="1">
+        <span class="range-value" id="setting-corner-radius-val">8px</span>
+      </div>
+
+      <div class="settings-row" style="margin-top:12px">
+        <span class="settings-row-label">Densidad</span>
+      </div>
+      <div class="btn-grid settings-btn-grid" id="setting-density-grid">
+        {#each densities as d}
+          <button class="base-btn" data-density={d.id}>{d.name}</button>
+        {/each}
+      </div>
     </div>
 
+    <!-- TEMA PERSONALIZADO -->
+    <div class="settings-section" id="custom-theme-section" style="display:none">
+      <div class="settings-label">Tema personalizado</div>
+      <div class="custom-theme-grid">
+        <label>Fondo <input type="color" id="ct-bg" value="#faf9f5"></label>
+        <label>Superficie <input type="color" id="ct-surface" value="#fffdf8"></label>
+        <label>Superficie fuerte <input type="color" id="ct-surface-strong" value="#ffffff"></label>
+        <label>Texto <input type="color" id="ct-ink" value="#27211b"></label>
+        <label>Texto secundario <input type="color" id="ct-muted" value="#766d62"></label>
+        <label>Líneas <input type="color" id="ct-line" value="#dfd7cb"></label>
+        <label>Acento <input type="color" id="ct-accent" value="#b18100"></label>
+      </div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-small" id="ct-save" style="flex:1">
+          <i data-lucide="save"></i> Guardar tema
+        </button>
+        <button class="btn btn-small btn-quiet" id="ct-reset" style="flex:1">
+          <i data-lucide="rotate-ccw"></i> Restaurar
+        </button>
+      </div>
+    </div>
+
+    <!-- NAVEGACIÓN -->
     <div class="settings-section">
       <div class="settings-label">Navegación</div>
       <label class="toggle-row">
@@ -89,20 +161,27 @@
         <input type="checkbox" class="toggle-input" id="setting-autofocus" checked>
         <span class="toggle-switch"></span>
       </label>
+      <div class="settings-row" style="margin-top:8px">
+        <span class="settings-row-label">Recientes a mostrar</span>
+      </div>
+      <div class="range-row">
+        <input type="range" id="setting-recent-count" min="3" max="10" value="5" step="1">
+        <span class="range-value" id="setting-recent-count-val">5</span>
+      </div>
     </div>
 
+    <!-- INTERFAZ -->
     <div class="settings-section">
       <div class="settings-label">Interfaz</div>
-      <label class="toggle-row">
-        <span class="toggle-label">Cuadrícula de fondo</span>
-        <input type="checkbox" class="toggle-input" id="setting-grid" checked>
-        <span class="toggle-switch"></span>
-      </label>
-      <label class="toggle-row">
-        <span class="toggle-label">Densidad compacta</span>
-        <input type="checkbox" class="toggle-input" id="setting-compact">
-        <span class="toggle-switch"></span>
-      </label>
+      <div class="settings-row">
+        <span class="settings-row-label">Estilo de cuadrícula</span>
+      </div>
+      <div class="btn-grid settings-btn-grid" id="setting-grid-style-grid">
+        {#each gridStyles as gs}
+          <button class="base-btn" data-grid-style={gs.id}>{gs.name}</button>
+        {/each}
+      </div>
+
       <label class="toggle-row">
         <span class="toggle-label">Controles grandes</span>
         <input type="checkbox" class="toggle-input" id="setting-large-controls">
@@ -119,11 +198,6 @@
         <span class="toggle-switch"></span>
       </label>
       <label class="toggle-row">
-        <span class="toggle-label">Texto más grande</span>
-        <input type="checkbox" class="toggle-input" id="setting-large-text">
-        <span class="toggle-switch"></span>
-      </label>
-      <label class="toggle-row">
         <span class="toggle-label">Contraste alto</span>
         <input type="checkbox" class="toggle-input" id="setting-high-contrast">
         <span class="toggle-switch"></span>
@@ -133,11 +207,74 @@
         <input type="checkbox" class="toggle-input" id="setting-motion">
         <span class="toggle-switch"></span>
       </label>
+
+      <div class="settings-row" style="margin-top:12px">
+        <span class="settings-row-label">Altura mínima de textarea</span>
+      </div>
+      <div class="range-row">
+        <input type="range" id="setting-textarea-height" min="60" max="600" value="112" step="8">
+        <span class="range-value" id="setting-textarea-height-val">112px</span>
+      </div>
+
+      <label class="toggle-row">
+        <span class="toggle-label">Resultado pegajoso (sticky)</span>
+        <input type="checkbox" class="toggle-input" id="setting-sticky-output">
+        <span class="toggle-switch"></span>
+      </label>
     </div>
 
+    <!-- COMPORTAMIENTO -->
+    <div class="settings-section">
+      <div class="settings-label">Comportamiento</div>
+      <label class="toggle-row">
+        <span class="toggle-label">Confirmar antes de eliminar</span>
+        <input type="checkbox" class="toggle-input" id="setting-confirm-delete" checked>
+        <span class="toggle-switch"></span>
+      </label>
+      <label class="toggle-row">
+        <span class="toggle-label">Tema automático por horario</span>
+        <input type="checkbox" class="toggle-input" id="setting-auto-theme">
+        <span class="toggle-switch"></span>
+      </label>
+      <div class="auto-theme-controls" id="auto-theme-controls" style="display:none">
+        <div class="auto-theme-row">
+          <label for="setting-day-theme">Día</label>
+          <select id="setting-day-theme">
+            {#each themes.filter(t => t.id !== 'custom') as theme}
+              <option value={theme.id}>{theme.name}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="auto-theme-row">
+          <label for="setting-night-theme">Noche</label>
+          <select id="setting-night-theme">
+            {#each themes.filter(t => t.id !== 'custom') as theme}
+              <option value={theme.id}>{theme.name}</option>
+            {/each}
+          </select>
+        </div>
+        <div class="auto-theme-row">
+          <label for="setting-sunset">Cambio día → noche</label>
+          <input type="time" id="setting-sunset" value="20:00">
+        </div>
+        <div class="auto-theme-row">
+          <label for="setting-sunrise">Cambio noche → día</label>
+          <input type="time" id="setting-sunrise" value="07:00">
+        </div>
+      </div>
+    </div>
+
+    <!-- DATOS -->
     <div class="settings-section">
       <div class="settings-label">Datos</div>
-      <button class="btn btn-small" id="setting-clear" style="width:100%">
+      <button class="btn btn-small" id="setting-export" style="width:100%">
+        <i data-lucide="download"></i> Exportar configuración
+      </button>
+      <button class="btn btn-small" id="setting-import" style="width:100%;margin-top:8px">
+        <i data-lucide="upload"></i> Importar configuración
+      </button>
+      <input type="file" id="setting-import-file" accept=".json" style="display:none">
+      <button class="btn btn-small" id="setting-clear" style="width:100%;margin-top:8px">
         <i data-lucide="trash-2"></i> Limpiar datos guardados
       </button>
       <p class="settings-hint">Esto eliminará notas, preferencias y configuraciones locales.</p>

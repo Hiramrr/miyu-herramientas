@@ -29,6 +29,8 @@ export const toolLoaders = {
   'image-editor': () => import('../app/ImageEditor.svelte'),
   favicon: () => import('../app/FaviconGenerator.svelte'),
   palette: () => import('../app/PaletteGenny.svelte'),
+  base64: () => import('../app/Base64Tool.svelte'),
+  jwt: () => import('../app/JwtDecoder.svelte'),
   ...Object.fromEntries(pdfExtraToolIds.map((id) => [id, pdfExtraToolLoader])),
   'video-download': () => import('../app/VideoDownloader.svelte'),
 

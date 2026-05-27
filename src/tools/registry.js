@@ -256,6 +256,12 @@ export const toolSections = [
         "description": "Bin/Oct/Dec/Hex"
       },
       {
+        "id": "base64",
+        "icon": "file-code",
+        "name": "Base64",
+        "description": "Codifica y decodifica Base64"
+      },
+      {
         "id": "ffmpeg",
         "icon": "video",
         "name": "FFmpeg",
@@ -266,6 +272,12 @@ export const toolSections = [
         "icon": "download",
         "name": "Descargar Video",
         "description": "YouTube y TikTok con yt-dlp"
+      },
+      {
+        "id": "jwt",
+        "icon": "key-round",
+        "name": "JWT Decoder",
+        "description": "Decodifica tokens JWT"
       }
     ]
   },

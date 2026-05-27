@@ -90,9 +90,14 @@
           <h2><i data-lucide="alert-circle"></i> Error al cargar</h2>
           <p>No se pudo cargar la herramienta seleccionada.</p>
         </div>
-        <div class="output" style="border-color: #e0a8a8; background: #fff4f2; color: #9a483d;">
+        <div class="output" style="border-color: #e0a8a8; background: #fff4f2; color: #9a483d; min-height: auto;">
           <p style="font-weight: 600;">Detalles técnicos:</p>
           <pre style="font-size: 0.8rem; margin-top: 8px; overflow: auto;">{error.message}</pre>
+          <div class="btn-row" style="margin-top: 12px;">
+            <button class="btn" onclick={() => { activeTool.trigger += 1; }}>
+              <i data-lucide="rotate-cw"></i> Reintentar
+            </button>
+          </div>
         </div>
       </div>
     {/await}
