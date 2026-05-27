@@ -7,10 +7,10 @@
     supportsWebGpu,
   } from '../tools/browserAiRuntime.js';
 
-  const modelUrl = 'https://huggingface.co/opencv/inpainting_lama/resolve/main/inpainting_lama_2025jan.onnx';
-  const modelSizeMb = 92;
+  const modelUrl = 'https://huggingface.co/IsGarrido/LaMa-ONNX/resolve/main/lama_fp32.onnx';
+  const modelSizeMb = 208;
   const inputSize = 512;
-  const modelCacheName = 'miyu-lama-models-v2';
+  const modelCacheName = 'miyu-lama-models-v1';
 
   let sourceImage = null;
   let resultImage = null;
