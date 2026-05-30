@@ -1,27 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { toolLoaders } from '../tools/lazyImports.js';
-
-const allToolIds = [
-  'bgremove', 'csv-json', 'image-convert', 'image-optimize', 'image-editor',
-  'favicon', 'palette', 'video-download',
-  // Legacy tools migrated to Svelte
-  'text', 'case', 'lorem', 'findreplace', 'markdown', 'diff',
-  'password', 'passcheck',
-  'qr', 'image',
-  'json', 'html', 'htmlpreview', 'regex', 'hash', 'uuid', 'bases', 'ffmpeg',
-  'color', 'harmony', 'contrast', 'gradient', 'boxshadow',
-  'unit', 'random', 'timestamp', 'timer', 'notes',
-  'pdf', 'pdf-merge', 'pdf-split', 'pdf-img2pdf', 'pdf-pdf2img', 'pdf-text',
-  'ascii',
-  // PDF extra tools
-  'pdf-organize', 'pdf-page-numbers', 'pdf-sign', 'pdf-crop',
-  'pdf-watermark', 'pdf-metadata', 'pdf-rotate', 'pdf-remove',
-];
+import { tools } from '../tools/registry.js';
 
 describe('lazy tool imports', () => {
-  it('provides a loader for every tool', () => {
-    allToolIds.forEach((id) => {
+  it('provides a loader for every registered tool', () => {
+    tools.forEach(({ id }) => {
       expect(toolLoaders[id], `missing loader for "${id}"`).toBeTypeOf('function');
     });
+  });
+
+  it('does not keep loaders for removed tools', () => {
+    const registeredIds = tools.map(({ id }) => id).sort();
+    const loaderIds = Object.keys(toolLoaders).sort();
+
+    expect(loaderIds).toEqual(registeredIds);
   });
 });

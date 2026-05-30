@@ -198,10 +198,28 @@ setupToolNavigation();
       renderCommandList('');
       renderQuickAccess();
       renderSidebarFavorites();
+      window.dispatchEvent(new CustomEvent('mh:favorites-changed', { detail: { favorites: Array.from(favoriteTools) } }));
       if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
     }
 
+    function setupFavoriteSyncEvents() {
+      window.toggleFavoriteTool = toggleFavorite;
+      window.addEventListener('mh:favorites-changed', function(event) {
+        var ids = event.detail && Array.isArray(event.detail.favorites)
+          ? event.detail.favorites
+          : readJSON('mh-favorites', []);
+        favoriteTools = new Set(ids.filter(getToolMeta));
+        saveJSON('mh-favorites', Array.from(favoriteTools));
+        updateFavoriteButtons();
+        renderCommandList('');
+        renderQuickAccess();
+        renderSidebarFavorites();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+      });
+    }
+
     function setupExperienceEnhancements() {
+      setupFavoriteSyncEvents();
       setupFavorites();
       setupCommandPalette();
       setupCopyFeedback();
@@ -843,7 +861,9 @@ setupToolNavigation();
         }
         if (event.key === '/' && !isTypingTarget(event.target)) {
           event.preventDefault();
-          var search = document.getElementById('sidebar-search');
+          var gridPanel = document.getElementById('panel-tool-grid');
+          var gridSearch = document.getElementById('tool-grid-search');
+          var search = gridPanel && gridPanel.classList.contains('active') && gridSearch ? gridSearch : document.getElementById('sidebar-search');
           if (search) search.focus();
         }
         if (event.key === 'Escape') {
@@ -890,6 +910,11 @@ setupToolNavigation();
             showTool(selected.id);
             closeCommandPalette();
           }
+        } else if (event.key === 'Escape' && commandState.input.value) {
+          event.preventDefault();
+          event.stopPropagation();
+          commandState.input.value = '';
+          renderCommandList('');
         }
       });
       renderCommandList('');
