@@ -1,18 +1,30 @@
 <script>
+  import QRCode from 'qrcode';
   import { activeTool } from '../tools/activeTool.svelte.js';
 
   let qrDataURL = '';
+  let qrError = '';
+  let qrText = '';
+  let qrSize = '300';
   let imgBase64 = '';
 
-  function generateQR() {
-    var t = document.getElementById('qr-text').value;
-    var s = parseInt(document.getElementById('qr-size').value);
-    if (!t) return;
-    var c = document.createElement('canvas');
-    window.QRCode.toCanvas(c, t, { width: s }).then(function () {
+  async function generateQR() {
+    qrError = '';
+    if (!qrText.trim()) {
+      qrDataURL = '';
+      qrError = 'Escribe un texto o URL para generar el código QR.';
+      return;
+    }
+
+    try {
+      var c = document.createElement('canvas');
+      await QRCode.toCanvas(c, qrText, { width: parseInt(qrSize) });
       qrDataURL = c.toDataURL();
-      document.getElementById('qr-output').innerHTML = '<img src="' + qrDataURL + '" alt="QR">';
-    });
+    } catch (error) {
+      qrDataURL = '';
+      qrError = 'No se pudo generar el código QR. Intenta con un texto más corto.';
+      console.error('QR generation error:', error);
+    }
   }
 
   function downloadQR() {
@@ -47,14 +59,20 @@
         <p>Crea códigos QR para enlaces, texto o información de contacto</p>
       </div>
       <label for="qr-text">Texto o URL</label>
-      <input type="text" id="qr-text" placeholder="https://ejemplo.com">
+      <input type="text" id="qr-text" placeholder="https://ejemplo.com" bind:value={qrText}>
       <label for="qr-size">Tamaño</label>
-      <select id="qr-size"><option value="200">Pequeño (200px)</option><option value="300" selected>Mediano (300px)</option><option value="500">Grande (500px)</option></select>
+      <select id="qr-size" bind:value={qrSize}><option value="200">Pequeño (200px)</option><option value="300">Mediano (300px)</option><option value="500">Grande (500px)</option></select>
       <div class="btn-row">
         <button class="btn" onclick={generateQR}><i data-lucide="qr-code"></i> Generar QR</button>
         <button class="btn btn-green" onclick={downloadQR}><i data-lucide="download"></i> Descargar PNG</button>
       </div>
-      <div class="output" id="qr-output"></div>
+      <div class="output" id="qr-output">
+        {#if qrError}
+          <span class="tool-status error">{qrError}</span>
+        {:else if qrDataURL}
+          <img src={qrDataURL} alt="Código QR generado">
+        {/if}
+      </div>
     </div>
 {/if}
 
