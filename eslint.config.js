@@ -12,14 +12,6 @@ export default [
     }
   },
   {
-    files: ['**/*.svelte'],
-    languageOptions: {
-      parserOptions: {
-        parser: import.meta.resolve('svelte-eslint-parser')
-      }
-    }
-  },
-  {
     rules: {
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': 'off'

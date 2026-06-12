@@ -20,11 +20,11 @@
       r = v * c[f] * p[t];
     } else if (['kb', 'mb', 'gb'].includes(f) && ['kb', 'mb', 'gb'].includes(t)) {
       var b = { kb: 1024, mb: 1048576, gb: 1073741824 };
-      r = v * b[f] / b[t];
+      r = (v * b[f]) / b[t];
     } else if (f === 'celsius' && t === 'fahrenheit') {
-      r = v * 9 / 5 + 32;
+      r = (v * 9) / 5 + 32;
     } else if (f === 'fahrenheit' && t === 'celsius') {
-      r = (v - 32) * 5 / 9;
+      r = ((v - 32) * 5) / 9;
     } else {
       r = 'Conversión no soportada';
     }
@@ -41,7 +41,11 @@
     var mn = parseInt(randMin) || 0;
     var mx = parseInt(randMax) || 1;
     var ct = parseInt(randCount) || 1;
-    if (mn > mx) { var tmp = mn; mn = mx; mx = tmp; }
+    if (mn > mx) {
+      var tmp = mn;
+      mn = mx;
+      mx = tmp;
+    }
     var nums = [];
     for (var i = 0; i < ct; i++) {
       nums.push(Math.floor(Math.random() * (mx - mn + 1)) + mn);
@@ -87,7 +91,13 @@
   let cdS = 0;
 
   function fmt(s) {
-    return String(Math.floor(s / 3600)).padStart(2, '0') + ':' + String(Math.floor((s % 3600) / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+    return (
+      String(Math.floor(s / 3600)).padStart(2, '0') +
+      ':' +
+      String(Math.floor((s % 3600) / 60)).padStart(2, '0') +
+      ':' +
+      String(s % 60).padStart(2, '0')
+    );
   }
 
   function startStopwatch() {
@@ -163,7 +173,11 @@
   }
 
   function currentNote() {
-    return notesData.find(function(note) { return note.id === activeId; }) || notesData[0];
+    return (
+      notesData.find(function (note) {
+        return note.id === activeId;
+      }) || notesData[0]
+    );
   }
 
   function persistNotes() {
@@ -210,7 +224,10 @@
     loadActiveNote();
     setTimeout(() => {
       var el = document.getElementById('note-title');
-      if (el) { el.focus(); el.select(); }
+      if (el) {
+        el.focus();
+        el.select();
+      }
     }, 0);
   }
 
@@ -218,9 +235,13 @@
     if (!notesData.length) return;
     var note = currentNote();
     if (!note || !confirm('¿Eliminar esta nota?')) return;
-    notesData = notesData.filter(function(item) { return item.id !== note.id; });
+    notesData = notesData.filter(function (item) {
+      return item.id !== note.id;
+    });
     if (!notesData.length) {
-      notesData = [{ id: 'note-' + Date.now(), title: 'Nueva nota', body: '', updatedAt: Date.now() }];
+      notesData = [
+        { id: 'note-' + Date.now(), title: 'Nueva nota', body: '', updatedAt: Date.now() },
+      ];
     }
     activeId = notesData[0].id;
     persistNotes();
@@ -238,7 +259,11 @@
     var blob = new Blob([note.body || ''], { type: 'text/plain;charset=utf-8' });
     var link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = (note.title || 'nota').replace(/[^a-z0-9-_]+/gi, '-').replace(/^-|-$/g, '').toLowerCase() + '.txt';
+    link.download =
+      (note.title || 'nota')
+        .replace(/[^a-z0-9-_]+/gi, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase() + '.txt';
     link.click();
     URL.revokeObjectURL(link.href);
   }
@@ -246,12 +271,17 @@
   function initNotes() {
     var saved = readJSON('mh-notes-v2', null);
     var legacy = localStorage.getItem('quickNotes') || '';
-    notesData = Array.isArray(saved) && saved.length ? saved : [{
-      id: 'note-' + Date.now(),
-      title: legacy.trim().split('\n')[0].slice(0, 60) || 'Nota rápida',
-      body: legacy,
-      updatedAt: Date.now()
-    }];
+    notesData =
+      Array.isArray(saved) && saved.length
+        ? saved
+        : [
+            {
+              id: 'note-' + Date.now(),
+              title: legacy.trim().split('\n')[0].slice(0, 60) || 'Nota rápida',
+              body: legacy,
+              updatedAt: Date.now(),
+            },
+          ];
     activeId = localStorage.getItem('mh-active-note') || notesData[0].id;
     loadActiveNote();
   }
@@ -272,7 +302,7 @@
       <p>Convierte entre unidades CSS, tamaños de archivo y temperaturas</p>
     </div>
     <label for="unit-value">Valor</label>
-    <input type="number" id="unit-value" bind:value={unitValue} placeholder="100">
+    <input type="number" id="unit-value" bind:value={unitValue} placeholder="100" />
     <div style="display:flex;gap:10px;align-items:center;margin-top:12px">
       <select id="unit-from" bind:value={unitFrom} style="flex:1">
         <option value="px">px</option>
@@ -298,7 +328,9 @@
         <option value="fahrenheit">°F</option>
       </select>
     </div>
-    <button class="btn" onclick={convertUnit}><i data-lucide="arrow-right-left"></i> Convertir</button>
+    <button class="btn" onclick={convertUnit}
+      ><i data-lucide="arrow-right-left"></i> Convertir</button
+    >
     <div class="output" id="unit-output">{unitOutput}</div>
   </div>
 {/if}
@@ -306,17 +338,29 @@
 {#if activeTool.id === 'random'}
   <div class="tool-panel" id="panel-random">
     <div class="panel-header">
-      <h2><i data-lucide="dice"></i> Generador de Números Aleatorios</h2>
+      <h2><i data-lucide="dice-5"></i> Generador de Números Aleatorios</h2>
       <p>Genera números aleatorios dentro de un rango, ideales para sorteos o decisiones</p>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div><label for="rand-min">Mínimo</label><input type="number" id="rand-min" bind:value={randMin}></div>
-      <div><label for="rand-max">Máximo</label><input type="number" id="rand-max" bind:value={randMax}></div>
+      <div>
+        <label for="rand-min">Mínimo</label><input
+          type="number"
+          id="rand-min"
+          bind:value={randMin}
+        />
+      </div>
+      <div>
+        <label for="rand-max">Máximo</label><input
+          type="number"
+          id="rand-max"
+          bind:value={randMax}
+        />
+      </div>
     </div>
     <label for="rand-count">Cantidad de números</label>
-    <input type="number" id="rand-count" bind:value={randCount} min="1" max="50">
+    <input type="number" id="rand-count" bind:value={randCount} min="1" max="50" />
     <div class="btn-row">
-      <button class="btn" onclick={generateRandom}><i data-lucide="dice"></i> Generar</button>
+      <button class="btn" onclick={generateRandom}><i data-lucide="dice-5"></i> Generar</button>
       <button class="btn btn-green" onclick={copyRandom}><i data-lucide="copy"></i> Copiar</button>
     </div>
     <div class="output" id="rand-output" style="font-size:1.1rem;font-weight:600">{randOutput}</div>
@@ -330,10 +374,10 @@
       <p>Convierte entre timestamps epoch y fechas legibles</p>
     </div>
     <label for="ts-input">Timestamp (epoch)</label>
-    <input type="number" id="ts-input" bind:value={tsInput} placeholder="1700000000">
+    <input type="number" id="ts-input" bind:value={tsInput} placeholder="1700000000" />
     <button class="btn" onclick={tsToDate}><i data-lucide="arrow-right"></i> A Fecha</button>
     <label for="date-input" style="margin-top:14px">O escribe fecha</label>
-    <input type="text" id="date-input" bind:value={dateInput} placeholder="2024-01-15 10:30:00">
+    <input type="text" id="date-input" bind:value={dateInput} placeholder="2024-01-15 10:30:00" />
     <button class="btn" onclick={dateToTs}><i data-lucide="arrow-right"></i> A Timestamp</button>
     <div class="output" id="ts-output" style="font-family:monospace">{tsOutput}</div>
   </div>
@@ -349,21 +393,33 @@
     <div class="timer-controls">
       <button class="btn" onclick={startStopwatch}><i data-lucide="play"></i> Iniciar</button>
       <button class="btn" onclick={pauseStopwatch}><i data-lucide="pause"></i> Pausar</button>
-      <button class="btn" onclick={resetStopwatch}><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+      <button class="btn" onclick={resetStopwatch}
+        ><i data-lucide="rotate-ccw"></i> Reiniciar</button
+      >
     </div>
-    <hr>
+    <hr />
     <label for="timer-min">Temporizador (minutos)</label>
-    <input type="number" id="timer-min" bind:value={timerMin} min="0" max="180">
+    <input type="number" id="timer-min" bind:value={timerMin} min="0" max="180" />
     <div class="tool-presets" id="timer-presets">
-      <button class="btn" type="button" onclick={() => setPreset(5)}><i data-lucide="clock"></i> 5 min</button>
-      <button class="btn" type="button" onclick={() => setPreset(15)}><i data-lucide="clock"></i> 15 min</button>
-      <button class="btn" type="button" onclick={() => setPreset(25)}><i data-lucide="clock"></i> 25 min</button>
-      <button class="btn" type="button" onclick={() => setPreset(45)}><i data-lucide="clock"></i> 45 min</button>
+      <button class="btn" type="button" onclick={() => setPreset(5)}
+        ><i data-lucide="clock"></i> 5 min</button
+      >
+      <button class="btn" type="button" onclick={() => setPreset(15)}
+        ><i data-lucide="clock"></i> 15 min</button
+      >
+      <button class="btn" type="button" onclick={() => setPreset(25)}
+        ><i data-lucide="clock"></i> 25 min</button
+      >
+      <button class="btn" type="button" onclick={() => setPreset(45)}
+        ><i data-lucide="clock"></i> 45 min</button
+      >
     </div>
     <div class="timer-controls" style="margin-top:12px">
       <button class="btn" onclick={startCountdown}><i data-lucide="play"></i> Iniciar</button>
       <button class="btn" onclick={pauseCountdown}><i data-lucide="pause"></i> Pausar</button>
-      <button class="btn" onclick={resetCountdown}><i data-lucide="rotate-ccw"></i> Reiniciar</button>
+      <button class="btn" onclick={resetCountdown}
+        ><i data-lucide="rotate-ccw"></i> Reiniciar</button
+      >
     </div>
   </div>
 {/if}
@@ -377,11 +433,20 @@
     <div class="notes-manager" id="notes-manager">
       <div class="notes-list-pane">
         <div class="notes-toolbar">
-          <button class="btn" type="button" id="notes-new" onclick={createNote}><i data-lucide="plus"></i> Nueva</button>
+          <button class="btn" type="button" id="notes-new" onclick={createNote}
+            ><i data-lucide="plus"></i> Nueva</button
+          >
         </div>
         <div class="notes-list" id="notes-list">
           {#each [...notesData].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)) as note}
-            <button class="note-list-item {note.id === activeId ? 'active' : ''}" type="button" onclick={() => { activeId = note.id; loadActiveNote(); }}>
+            <button
+              class="note-list-item {note.id === activeId ? 'active' : ''}"
+              type="button"
+              onclick={() => {
+                activeId = note.id;
+                loadActiveNote();
+              }}
+            >
               <strong>{note.title || 'Sin título'}</strong>
               <span>{notePreview(note)}</span>
             </button>
@@ -390,14 +455,31 @@
       </div>
       <div class="notes-editor-pane">
         <label for="note-title">Título</label>
-        <input id="note-title" type="text" placeholder="Título de la nota" bind:value={noteTitle} oninput={updateActiveNote}>
+        <input
+          id="note-title"
+          type="text"
+          placeholder="Título de la nota"
+          bind:value={noteTitle}
+          oninput={updateActiveNote}
+        />
         <label for="note-body">Contenido</label>
-        <textarea id="note-body" placeholder="Escribe esta nota..." bind:value={noteBody} oninput={updateActiveNote}></textarea>
+        <textarea
+          id="note-body"
+          placeholder="Escribe esta nota..."
+          bind:value={noteBody}
+          oninput={updateActiveNote}
+        ></textarea>
         <div class="notes-meta" id="note-meta">{noteMeta}</div>
         <div class="btn-row tool-extra-actions">
-          <button class="btn btn-green" type="button" id="notes-copy" onclick={copyNote}><i data-lucide="copy"></i> Copiar</button>
-          <button class="btn" type="button" id="notes-download" onclick={downloadNote}><i data-lucide="download"></i> TXT</button>
-          <button class="btn btn-quiet" type="button" id="notes-delete" onclick={deleteNote}><i data-lucide="trash-2"></i> Eliminar</button>
+          <button class="btn btn-green" type="button" id="notes-copy" onclick={copyNote}
+            ><i data-lucide="copy"></i> Copiar</button
+          >
+          <button class="btn" type="button" id="notes-download" onclick={downloadNote}
+            ><i data-lucide="download"></i> TXT</button
+          >
+          <button class="btn btn-quiet" type="button" id="notes-delete" onclick={deleteNote}
+            ><i data-lucide="trash-2"></i> Eliminar</button
+          >
         </div>
       </div>
     </div>
