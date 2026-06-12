@@ -149,7 +149,6 @@ setupToolNavigation();
       rememberRecentTool(t);
       updateFavoriteButtons();
       renderQuickAccess();
-      scrollActiveToolIntoView();
       if (panel) focusFirstPanelControl(panel);
       if (item) {
         document.title = item.querySelector('.tool-name').textContent + ' - miyu-herramientas';
@@ -272,12 +271,6 @@ setupToolNavigation();
         if (!control || document.activeElement === control) return;
         control.focus({ preventScroll: true });
       }, 80);
-    }
-
-    function scrollActiveToolIntoView() {
-      var active = document.querySelector('.tool-item.active');
-      if (!active || window.matchMedia('(max-width: 768px)').matches) return;
-      active.scrollIntoView({ block: 'nearest' });
     }
 
     function renderQuickAccess() {
