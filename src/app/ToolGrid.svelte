@@ -144,7 +144,7 @@
 <div class="tool-panel" id="panel-tool-grid">
   <div class="panel-header">
     <h2><i data-lucide="layout-grid"></i> Herramientas</h2>
-    <p>Todas las utilidades organizadas por categoría. Toca una para comenzar.</p>
+    <p>Elige una herramienta o búscala por nombre.</p>
   </div>
 
   <div class="tool-finder">
@@ -166,7 +166,7 @@
       {/if}
     </div>
 
-    <div class="tool-finder-tabs" aria-label="Filtrar por categoría">
+    <div class="tool-finder-tabs" role="group" aria-label="Filtrar por categoría">
       <button
         class:active={selectedSection === 'all'}
         aria-pressed={selectedSection === 'all'}
@@ -176,7 +176,7 @@
         Todas
         <span>{totalTools}</span>
       </button>
-      {#each toolSections as section}
+      {#each toolSections as section (section.id)}
         <button
           class:active={selectedSection === section.id}
           aria-pressed={selectedSection === section.id}
@@ -197,11 +197,11 @@
   <div class="tool-quick-access" id="tool-quick-access"></div>
 
   {#if filteredSections.length}
-    {#each filteredSections as section}
+    {#each filteredSections as section (section.id)}
       <div class="tool-grid-section" data-section={section.id}>
         <div class="tool-grid-section-title">{section.title}</div>
         <div class="tool-grid">
-          {#each section.tools as tool}
+          {#each section.tools as tool (tool.id)}
             <div class="tool-grid-card-wrap">
               <button
                 class="tool-grid-card"

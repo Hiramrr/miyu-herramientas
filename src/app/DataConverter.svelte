@@ -1,4 +1,6 @@
 <script>
+  import { csvToJson, jsonToCsv } from '../tools/dataConvert.js';
+
   let mode = 'csvToJson';
   let delimiter = 'auto';
   let hasHeaders = true;
@@ -8,84 +10,13 @@
 
   $: outputName = mode === 'csvToJson' ? 'datos.json' : 'datos.csv';
 
-  function actualDelimiter(text) {
-    if (delimiter === 'tab') return '\t';
-    if (delimiter === 'semicolon') return ';';
-    if (delimiter === 'comma') return ',';
-    const firstLine = text.split(/\r?\n/).find(Boolean) || '';
-    const candidates = [',', ';', '\t'];
-    return candidates
-      .map((item) => ({ item, count: firstLine.split(item).length }))
-      .sort((a, b) => b.count - a.count)[0].item;
-  }
-
-  function parseCsv(text, sep) {
-    const rows = [];
-    let row = [];
-    let cell = '';
-    let quoted = false;
-    for (let index = 0; index < text.length; index += 1) {
-      const char = text[index];
-      const next = text[index + 1];
-      if (char === '"' && quoted && next === '"') {
-        cell += '"';
-        index += 1;
-      } else if (char === '"') {
-        quoted = !quoted;
-      } else if (char === sep && !quoted) {
-        row.push(cell);
-        cell = '';
-      } else if ((char === '\n' || char === '\r') && !quoted) {
-        if (char === '\r' && next === '\n') index += 1;
-        row.push(cell);
-        if (row.some((value) => value.trim() !== '')) rows.push(row);
-        row = [];
-        cell = '';
-      } else {
-        cell += char;
-      }
-    }
-    row.push(cell);
-    if (row.some((value) => value.trim() !== '')) rows.push(row);
-    return rows;
-  }
-
-  function csvToJson() {
-    const sep = actualDelimiter(input);
-    const rows = parseCsv(input.trim(), sep);
-    if (!rows.length) throw new Error('No hay filas para convertir.');
-    if (!hasHeaders) return rows;
-    const headers = rows[0].map((header, index) => header.trim() || `columna_${index + 1}`);
-    return rows.slice(1).map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ''])));
-  }
-
-  function normalizeJson(value) {
-    const parsed = JSON.parse(value);
-    if (Array.isArray(parsed)) return parsed;
-    if (parsed && typeof parsed === 'object') return [parsed];
-    throw new Error('El JSON debe ser un objeto o una lista de objetos.');
-  }
-
-  function escapeCsv(value) {
-    const text = value == null ? '' : String(value);
-    return /[",\n\r;]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
-  }
-
-  function jsonToCsv() {
-    const rows = normalizeJson(input);
-    if (!rows.length) throw new Error('La lista JSON está vacía.');
-    const headers = [...new Set(rows.flatMap((row) => Object.keys(row || {})))];
-    const body = rows.map((row) => headers.map((header) => escapeCsv(row?.[header])).join(','));
-    return [headers.map(escapeCsv).join(','), ...body].join('\n');
-  }
-
   function convert() {
     try {
       if (mode === 'csvToJson') {
-        output = JSON.stringify(csvToJson(), null, 2);
+        output = JSON.stringify(csvToJson(input, { delimiter, hasHeaders }), null, 2);
         status = 'CSV convertido a JSON.';
       } else {
-        output = jsonToCsv();
+        output = jsonToCsv(input);
         status = 'JSON convertido a CSV.';
       }
     } catch (error) {

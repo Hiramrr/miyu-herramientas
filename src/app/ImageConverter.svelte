@@ -215,7 +215,7 @@
       <div class="image-convert-options">
         <label for="image-convert-format">Formato de salida</label>
         <select id="image-convert-format" bind:value={targetFormat} disabled={status === 'processing'}>
-          {#each formats as format}
+          {#each formats as format (format.value)}
             <option value={format.value}>{format.label}</option>
           {/each}
         </select>

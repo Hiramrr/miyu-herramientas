@@ -9,6 +9,10 @@ pnpm install
 pnpm run dev
 ```
 
+La instalación excluye los motores nativos de Node que trae Transformers. La aplicación usa su
+versión web con ONNX en el navegador. Para ejecutar inferencia en un backend habría que restaurar
+esas dependencias.
+
 ## Build de produccion
 
 ```bash
@@ -27,12 +31,10 @@ El resultado desplegable se genera en `dist/`.
 │   ├── app/
 │   │   ├── App.svelte
 │   │   ├── AppHeader.svelte
-│   │   ├── LegacyPanels.svelte
 │   │   └── Sidebar.svelte
-│   ├── legacy/
-│   │   └── panels.js
 │   ├── scripts/
-│   │   └── app.js
+│   │   ├── app.js
+│   │   └── navigation.js
 │   └── styles/
 │       └── main.css
 │   ├── tools/

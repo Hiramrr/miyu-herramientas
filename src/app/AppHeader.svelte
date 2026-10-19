@@ -3,11 +3,11 @@
 </script>
 
 <div class="app-header">
-  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Colapsar menu">
+  <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Menú de herramientas" aria-controls="app-sidebar" aria-expanded="true" title="Mostrar u ocultar menú">
     <i data-lucide="panel-left"></i>
   </button>
   {#if activeTool.id}
-    <button class="app-header-back" id="app-header-back" type="button" title="Volver a herramientas" onclick={() => window.showTool?.(null)}>
+    <button class="app-header-back" id="app-header-back" type="button" title="Volver a herramientas" aria-label="Volver a herramientas" onclick={() => window.showTool?.(null)}>
       <i data-lucide="arrow-left"></i>
     </button>
   {/if}

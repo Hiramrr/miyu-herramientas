@@ -1,8 +1,9 @@
 <script>
-	import { activeTool } from '../tools/activeTool.svelte.js';
+	import { asciiRowsToText } from './asciiHelpers.js';
 
 	var asciiPresets={standard:' .:-=+*#%@',blocks:' ░▒▓█',detailed:" .'`^\":;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",minimal:' ░█',braille:' ⣀⣄⣆⣇⣏⣟⣿'};
 	var asciiImageData=null;
+	var asciiTextLines=[];
 	var bayerMatrix=[[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],[3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]];
 
 	function asciiDrop(e){e.preventDefault();e.currentTarget.style.borderColor='#d8c8b8';e.currentTarget.style.background='transparent';var files=e.dataTransfer.files;if(files.length>0){document.getElementById('ascii-file').files=files;processAsciiImage();}}
@@ -17,22 +18,23 @@
 		var srcCanvas=document.createElement('canvas');srcCanvas.width=sourceW;srcCanvas.height=sourceH;var srcCtx=srcCanvas.getContext('2d');srcCtx.drawImage(asciiImageData,0,0,sourceW,sourceH);
 		var srcData=srcCtx.getImageData(0,0,sourceW,sourceH).data;var brightnesses=[];
 		for(var y=0;y<sourceH;y++){var row=[];for(var x=0;x<sourceW;x++){var i=(y*sourceW+x)*4;var r=srcData[i],g=srcData[i+1],b=srcData[i+2];var lum=0.2126*r+0.7152*g+0.0722*b;lum=(lum-128)*contrast+128+brightness;lum=Math.max(0,Math.min(255,lum));row.push(lum/255);}brightnesses.push(row);}
-		if(dither==='floyd'){for(var y=0;y<sourceH;y++){for(var x=0;x<sourceW;x++){var oldVal=brightnesses[y][x];var newVal=Math.round(oldVal);var err=oldVal-newVal;brightnesses[y][x]=newVal;if(x+1<sourceW)brightnesses[y][x+1]+=err*7/16;if(y+1<sourceH){if(x>0)brightnesses[y+1][x-1]+=err*3/16;brightnesses[y+1][x]+=err*5/16;if(x+1<sourceW)brightnesses[y+1][x+1]+=err*1/16;}}}}
-		if(dither==='ordered'){for(var y=0;y<sourceH;y++){for(var x=0;x<sourceW;x++){var threshold=(bayerMatrix[y%8][x%8]+0.5)/64;var val=brightnesses[y][x];brightnesses[y][x]=val<threshold?0:1;}}}
+		if(dither==='floyd'){for(y=0;y<sourceH;y++){for(x=0;x<sourceW;x++){var oldVal=brightnesses[y][x];var newVal=Math.round(oldVal);var err=oldVal-newVal;brightnesses[y][x]=newVal;if(x+1<sourceW)brightnesses[y][x+1]+=err*7/16;if(y+1<sourceH){if(x>0)brightnesses[y+1][x-1]+=err*3/16;brightnesses[y+1][x]+=err*5/16;if(x+1<sourceW)brightnesses[y+1][x+1]+=err*1/16;}}}}
+		if(dither==='ordered'){for(y=0;y<sourceH;y++){for(x=0;x<sourceW;x++){var threshold=(bayerMatrix[y%8][x%8]+0.5)/64;var val=brightnesses[y][x];brightnesses[y][x]=val<threshold?0:1;}}}
 		var output=document.getElementById('ascii-output');var outCanvas=document.getElementById('ascii-canvas');var outCtx=outCanvas.getContext('2d');var textColor=getAsciiTextColor(bgColor);
 		outCanvas.width=Math.ceil(sourceW*charW);outCanvas.height=sourceH*charH;outCtx.fillStyle=bgColor;outCtx.fillRect(0,0,outCanvas.width,outCanvas.height);outCtx.font=fontSize+'px monospace';outCtx.textBaseline='top';
 		var textLines=[];var textColors=[];
-		for(var y=0;y<sourceH;y++){var lineChars='';var lineColors=[];for(var x=0;x<sourceW;x++){var b=brightnesses[y][x];if(invert)b=1-b;var idx=Math.floor(b*(chars.length-1));var ch=chars[Math.min(Math.max(idx,0),chars.length-1)];lineChars+=ch;
-			if(color){var i=(y*sourceW+x)*4;lineColors.push('rgb('+srcData[i]+','+srcData[i+1]+','+srcData[i+2]+')');}
+		for(y=0;y<sourceH;y++){var lineChars='';var lineColors=[];for(x=0;x<sourceW;x++){b=brightnesses[y][x];if(invert)b=1-b;var idx=Math.floor(b*(chars.length-1));var ch=chars[Math.min(Math.max(idx,0),chars.length-1)];lineChars+=ch;
+			if(color){i=(y*sourceW+x)*4;lineColors.push('rgb('+srcData[i]+','+srcData[i+1]+','+srcData[i+2]+')');}
 			outCtx.fillStyle=color&&lineColors.length>0?lineColors[lineColors.length-1]:textColor;outCtx.fillText(ch,x*charW,y*charH);}
 			textLines.push(lineChars);if(color)textColors.push(lineColors);}
-		if(color){output.innerHTML='';for(var y=0;y<textLines.length;y++){var lineDiv=document.createElement('div');lineDiv.style.height=charH+'px';for(var x=0;x<textLines[y].length;x++){var span=document.createElement('span');span.textContent=textLines[y][x];span.style.color=textColors[y][x];span.style.display='inline-block';span.style.width=charW+'px';span.style.height=charH+'px';span.style.lineHeight=charH+'px';span.style.textAlign='center';lineDiv.appendChild(span);}output.appendChild(lineDiv);}}
+		if(color){output.innerHTML='';for(y=0;y<textLines.length;y++){var lineDiv=document.createElement('div');lineDiv.style.height=charH+'px';for(x=0;x<textLines[y].length;x++){var span=document.createElement('span');span.textContent=textLines[y][x];span.style.color=textColors[y][x];span.style.display='inline-block';span.style.width=charW+'px';span.style.height=charH+'px';span.style.lineHeight=charH+'px';span.style.textAlign='center';lineDiv.appendChild(span);}output.appendChild(lineDiv);}}
 		else{output.textContent=textLines.join('\n');}
+		asciiTextLines=textLines;
 		output.style.display='block';output.style.background=bgColor;output.style.color=textColor;output.style.fontSize=charH+'px';output.style.lineHeight=charH+'px';output.style.letterSpacing=color?'0px':(charW-baseCharW)+'px';}
 
-	function copyAscii(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=output.textContent||'';if(!text){var lines=output.querySelectorAll('div');var t=[];lines.forEach(function(line){var spans=line.querySelectorAll('span');var s='';spans.forEach(function(sp){s+=sp.textContent;});t.push(s);});text=t.join('\n');}navigator.clipboard.writeText(text);}
+	function copyAscii(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=asciiTextLines.length?asciiRowsToText(asciiTextLines):(output.textContent||'');navigator.clipboard.writeText(text);}
 
-	function downloadAsciiText(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=output.textContent||'';if(!text){var lines=output.querySelectorAll('div');var t=[];lines.forEach(function(line){var spans=line.querySelectorAll('span');var s='';spans.forEach(function(sp){s+=sp.textContent;});t.push(s);});text=t.join('\n');}var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ascii-art.txt';a.click();}
+	function downloadAsciiText(){var output=document.getElementById('ascii-output');if(output.style.display==='none')return;var text=asciiTextLines.length?asciiRowsToText(asciiTextLines):(output.textContent||'');var blob=new Blob([text],{type:'text/plain'});var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='ascii-art.txt';a.click();URL.revokeObjectURL(a.href);}
 
 	function downloadAscii(){var canvas=document.getElementById('ascii-canvas');if(canvas.width===0||canvas.height===0)return;var a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='ascii-art.png';a.click();}
 
@@ -45,7 +47,6 @@
 	function handleTypeChange(e){document.getElementById('ascii-custom-section').style.display=e.currentTarget.value==='custom'?'block':'none';if(asciiImageData)generateAscii();}
 </script>
 
-{#if activeTool.id === 'ascii'}
 <div class="tool-panel" id="panel-ascii">
 	<div class="panel-header">
 		<h2><i data-lucide="image"></i> Generador ASCII Pro</h2>
@@ -122,4 +123,3 @@
 	<pre id="ascii-output" style="font-family:monospace;font-size:5px;line-height:5px;white-space:pre;overflow-x:auto;background:#000000;color:#ffffff;padding:12px;border-radius:8px;margin-top:10px;display:none"></pre>
 	<canvas id="ascii-canvas" style="display:none"></canvas>
 </div>
-{/if}

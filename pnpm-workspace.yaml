@@ -1,5 +1,11 @@
 allowBuilds:
   esbuild: true
-  onnxruntime-node: true
+  onnxruntime-node: set this to true or false
   protobufjs: true
-  sharp: true
+  sharp: set this to true or false
+
+# Esta SPA carga transformers.web.js. Los motores nativos de Node no se usan.
+overrides:
+  '@huggingface/transformers>onnxruntime-node': '-'
+  '@huggingface/transformers>sharp': '-'
+  'protobufjs@<7.6.5': '7.6.5'

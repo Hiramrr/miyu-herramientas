@@ -1,7 +1,6 @@
 <script>
   import { onMount } from 'svelte';
   import AppHeader from './AppHeader.svelte';
-  import LegacyPanels from './LegacyPanels.svelte';
   import LazyToolLoader from './LazyToolLoader.svelte';
   import SettingsPanel from './SettingsPanel.svelte';
   import Sidebar from './Sidebar.svelte';
@@ -23,7 +22,6 @@
 <main class="main">
   <AppHeader />
   <ToolGrid />
-  <LegacyPanels />
   <LazyToolLoader />
 </main>
 

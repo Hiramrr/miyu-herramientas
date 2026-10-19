@@ -1,4 +1,6 @@
 <script>
+  import { shellQuote } from '../tools/codeShell.js';
+
   let url = '';
   let format = 'mp4';
   let quality = 'best';
@@ -6,10 +8,6 @@
   let playlist = false;
   let command = '';
   let error = '';
-
-  function shellQuote(value) {
-    return "'" + String(value).replace(/'/g, "'\\''") + "'";
-  }
 
   function outputTemplate() {
     return filename.trim() || '%(title)s.%(ext)s';
@@ -29,7 +27,7 @@
       if (!/^https?:$/.test(parsed.protocol)) {
         throw new Error('URL invalida');
       }
-    } catch (e) {
+    } catch {
       command = '';
       error = 'Pega una URL valida de YouTube, TikTok u otro sitio compatible con yt-dlp.';
       return;

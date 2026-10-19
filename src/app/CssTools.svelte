@@ -1,5 +1,5 @@
 <script>
-  import { activeTool } from '../tools/activeTool.svelte.js';
+  import { contrastRatio as contrastRatioHex, findContrastColor } from '../tools/contrast.js';
 
   // --- Color panel ---
   let colorPicker = '#8bb8d4';
@@ -85,40 +85,8 @@
     return `hsl(${h}, ${s}%, ${l}%)`;
   }
 
-  function rgbToHslObj(r, g, b) {
-    const [h, s, l] = rgbToHsl(r, g, b);
-    return { h, s, l };
-  }
-
-  function hslToRgb(h, s, l) {
-    h /= 360; s /= 100; l /= 100;
-    let r, g, b;
-    if (s === 0) {
-      r = g = b = l;
-    } else {
-      const hue2rgb = (p, q, t) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-      };
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1 / 3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1 / 3);
-    }
-    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
-  }
-
   function hexToRgbObj(hex) {
     return { r: parseInt(hex.slice(1, 3), 16), g: parseInt(hex.slice(3, 5), 16), b: parseInt(hex.slice(5, 7), 16) };
-  }
-
-  function rgbToHexStr(r, g, b) {
-    return `#${clamp(r).toString(16).padStart(2, '0')}${clamp(g).toString(16).padStart(2, '0')}${clamp(b).toString(16).padStart(2, '0')}`;
   }
 
   function harmonyStops(type) {
@@ -171,26 +139,11 @@
   let contrastFgHex = '#ffffff';
   let contrastRatio = 21.00;
   let contrastVerdict = 'Super';
+  let contrastMessage = '';
   let contrastBadges = { aaNormal: true, aaLarge: true, aaaNormal: true, aaaLarge: true };
 
-  function contrastLum(hex) {
-    const rgb = hexToRgbObj(hex);
-    const linear = [rgb.r, rgb.g, rgb.b].map((c) => {
-      const v = c / 255;
-      return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
-  }
-
-  function contrastRatioHex(c1, c2) {
-    const l1 = contrastLum(c1);
-    const l2 = contrastLum(c2);
-    const lighter = Math.max(l1, l2);
-    const darker = Math.min(l1, l2);
-    return (lighter + 0.05) / (darker + 0.05);
-  }
-
   function updateContrast() {
+    contrastMessage = '';
     contrastBgHex = contrastBg;
     contrastFgHex = contrastFg;
     const ratio = contrastRatioHex(contrastBg, contrastFg);
@@ -227,31 +180,11 @@
   }
 
   function fixContrast(target) {
-    const minRatio = target === 'aaa' || target === 'AAA' ? 7 : 4.5;
-    let fg = contrastFg;
-    let bg = contrastBg;
-    let tries = 0;
-    while (contrastRatioHex(bg, fg) < minRatio && tries < 50) {
-      const lumBg = contrastLum(bg);
-      const lumFg = contrastLum(fg);
-      if (lumBg > lumFg) {
-        const obj = hexToRgbObj(bg);
-        obj.r = clamp(obj.r - 10);
-        obj.g = clamp(obj.g - 10);
-        obj.b = clamp(obj.b - 10);
-        bg = rgbToHexStr(obj.r, obj.g, obj.b);
-      } else {
-        const obj = hexToRgbObj(fg);
-        obj.r = clamp(obj.r + 10);
-        obj.g = clamp(obj.g + 10);
-        obj.b = clamp(obj.b + 10);
-        fg = rgbToHexStr(obj.r, obj.g, obj.b);
-      }
-      tries++;
-    }
-    contrastBg = bg;
-    contrastFg = fg;
+    const minRatio = target === 'AAA' ? 7 : 4.5;
+    const result = findContrastColor(contrastBg, contrastFg, minRatio);
+    contrastFg = result.color;
     updateContrast();
+    if (!result.passes) contrastMessage = 'Con este fondo ningún color de texto alcanza ' + minRatio + ':1. Cambia el color de fondo para cumplir ' + target + '.';
   }
 
   // --- Gradient panel ---
@@ -291,7 +224,6 @@
   updateShadow();
 </script>
 
-{#if activeTool.id === 'color'}
   <div class="tool-panel" id="panel-color">
     <div class="panel-header">
       <h2><i data-lucide="palette"></i> Conversor de Colores</h2>
@@ -306,9 +238,7 @@
       <span style="display:inline-block;width:32px;height:32px;background:{colorPicker};border-radius:8px;vertical-align:middle;border:1px solid var(--line);margin-left:6px"></span>
     </div>
   </div>
-{/if}
 
-{#if activeTool.id === 'harmony'}
   <div class="tool-panel" id="panel-harmony">
     <div class="panel-header">
       <h2><i data-lucide="swatch-book"></i> Generador de Armonía</h2>
@@ -349,7 +279,7 @@
       <button class="btn btn-green" onclick={copyHarmonyCSS}><i data-lucide="copy"></i> Copiar CSS</button>
     </div>
     <div class="harmony-grid" id="harmony-output">
-      {#each harmonyResult as c, i}
+      {#each harmonyResult as c, i (c.name)}
         <div class="harmony-swatch">
           <div class="harmony-chip" style="background: {c.hex}"></div>
           <div class="harmony-meta">
@@ -361,9 +291,7 @@
       {/each}
     </div>
   </div>
-{/if}
 
-{#if activeTool.id === 'contrast'}
   <div class="tool-panel" id="panel-contrast">
     <div class="panel-header">
       <h2><i data-lucide="contrast"></i> Contrast Checker</h2>
@@ -390,6 +318,7 @@
       <button class="btn" style="min-height:32px;padding:7px 12px;font-size:0.72rem" onclick={() => fixContrast('AA')}><i data-lucide="wand-2"></i> Ajustar a AA</button>
       <button class="btn" style="min-height:32px;padding:7px 12px;font-size:0.72rem" onclick={() => fixContrast('AAA')}><i data-lucide="wand-2"></i> Ajustar a AAA</button>
     </div>
+    {#if contrastMessage}<p class="tool-status" role="status">{contrastMessage}</p>{/if}
     <div class="contrast-preview-box" id="contrast-preview" style="background-color: {contrastBg}; color: {contrastFg};">
       <div style="font-size:1.5rem;font-weight:700;margin-bottom:6px">Large Text (24px+)</div>
       <div style="font-size:1rem;margin-bottom:6px">Normal text at 16px. The quick brown fox jumps over the lazy dog.</div>
@@ -417,9 +346,7 @@
       </div>
     </div>
   </div>
-{/if}
 
-{#if activeTool.id === 'gradient'}
   <div class="tool-panel" id="panel-gradient">
     <div class="panel-header">
       <h2><i data-lucide="droplets"></i> Generador de Gradientes</h2>
@@ -435,9 +362,7 @@
     <div class="output" id="grad-css" style="font-family:monospace;font-size:0.85rem">background: {gradCss};</div>
     <div class="btn-row"><button class="btn btn-green" onclick={copyGradient}><i data-lucide="copy"></i> Copiar CSS</button></div>
   </div>
-{/if}
 
-{#if activeTool.id === 'boxshadow'}
   <div class="tool-panel" id="panel-boxshadow">
     <div class="panel-header">
       <h2><i data-lucide="square"></i> Generador de Box Shadow</h2>
@@ -455,4 +380,3 @@
     <div class="output" id="shadow-css" style="font-family:monospace;font-size:0.85rem">box-shadow: {shadowCss};</div>
     <button class="btn btn-green" onclick={copyShadow}><i data-lucide="copy"></i> Copiar CSS</button>
   </div>
-{/if}

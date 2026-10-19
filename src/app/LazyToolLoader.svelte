@@ -1,105 +1,105 @@
 <script>
+  import { onDestroy, tick, untrack } from 'svelte';
   import { activeTool } from '../tools/activeTool.svelte.js';
   import { toolLoaders } from '../tools/lazyImports.js';
 
-  let currentId = $derived(activeTool.id);
+  const imports = new WeakMap();
+  let components = $state.raw([]);
+  let loadingId = $state(null);
+  let loadError = $state(null);
+  let navigation = 0;
   let iconFrame = null;
+  let iconObserver = null;
 
-  function refreshLucideIcons() {
+  function refreshIcons() {
     if (iconFrame) cancelAnimationFrame(iconFrame);
     iconFrame = requestAnimationFrame(() => {
       iconFrame = null;
-      if (!document.querySelector('i[data-lucide]')) return;
-      if (window.lucide && typeof window.lucide.createIcons === 'function') {
-        window.lucide.createIcons();
-      }
+      if (document.querySelector('i[data-lucide]')) window.lucide?.createIcons();
     });
   }
 
-  $effect(() => {
-    const id = currentId;
-    const _trigger = activeTool.trigger;
-    if (!id) return;
+  async function openTool(id) {
+    const version = ++navigation;
+    iconObserver?.disconnect();
+    loadingId = null;
+    loadError = null;
+    document.querySelectorAll('.tool-panel.active').forEach((panel) => panel.classList.remove('active'));
+    if (!id) {
+      document.getElementById('panel-tool-grid')?.classList.add('active');
+      return;
+    }
 
     const loader = toolLoaders[id];
     if (!loader) return;
-    let panelIconObserver = null;
-
-    function activatePanel(panel) {
-      document.querySelectorAll('.tool-panel').forEach((p) => {
-        if (!p.id.startsWith('panel-lazy-')) p.classList.remove('active');
+    loadingId = id;
+    let pending = imports.get(loader);
+    if (!pending) {
+      pending = Promise.resolve().then(loader).then(({ default: Component }) => {
+        if (!components.some((entry) => entry.loader === loader)) {
+          components = [...components, { loader, Component }];
+        }
       });
-      panel.classList.add('active');
-      refreshLucideIcons();
-      if (typeof window.setupFilePickers === 'function') {
-        window.setupFilePickers();
-      }
-      panelIconObserver = new MutationObserver(refreshLucideIcons);
-      panelIconObserver.observe(panel, { childList: true, subtree: true });
+      imports.set(loader, pending);
     }
 
-    // Hide grid panel when a lazy tool is active
-    const gridPanel = document.getElementById('panel-tool-grid');
-    if (gridPanel) gridPanel.classList.remove('active');
-
-    // If panel already exists (second visit), activate it immediately
-    const existing = document.getElementById('panel-' + id);
-    if (existing) {
-      activatePanel(existing);
-      return () => panelIconObserver?.disconnect();
-    }
-
-    // Wait for component to mount and insert its panel
-    const observer = new MutationObserver(() => {
-      refreshLucideIcons();
+    try {
+      await pending;
+      await tick();
+      if (version !== navigation) return;
       const panel = document.getElementById('panel-' + id);
-      if (panel) {
-        activatePanel(panel);
-        observer.disconnect();
-      }
-    });
+      if (!panel) throw new Error('No se encontró el panel de la herramienta.');
+      loadingId = null;
+      panel.classList.add('active');
+      window.setupFilePickers?.();
+      refreshIcons();
+      iconObserver = new MutationObserver(refreshIcons);
+      iconObserver.observe(panel, { childList: true, subtree: true });
+      window.dispatchEvent(new CustomEvent('mh:tool-ready', { detail: { id } }));
+    } catch (error) {
+      imports.delete(loader);
+      if (version !== navigation) return;
+      loadingId = null;
+      loadError = error;
+      refreshIcons();
+    }
+  }
 
-    observer.observe(document.body, { childList: true, subtree: true });
+  $effect(() => {
+    const id = activeTool.id;
+    activeTool.trigger;
+    untrack(() => openTool(id));
+  });
 
-    return () => {
-      observer.disconnect();
-      panelIconObserver?.disconnect();
-      if (iconFrame) cancelAnimationFrame(iconFrame);
-    };
+  onDestroy(() => {
+    navigation += 1;
+    iconObserver?.disconnect();
+    if (iconFrame) cancelAnimationFrame(iconFrame);
   });
 </script>
 
-{#key currentId}
-  {#if currentId && toolLoaders[currentId]}
-    {#await toolLoaders[currentId]()}
-      <div class="tool-panel" id="panel-lazy-loading">
-        <div class="panel-header">
-          <h2><span class="lazy-spinner"></span> Cargando herramienta...</h2>
-          <p>Descargando recursos necesarios, esto tomará solo un momento.</p>
-        </div>
-        <div class="output" style="text-align:center; padding: 32px;">
-          <div class="bgremove-spinner" style="margin: 0 auto;"></div>
-          <p style="margin-top: 14px; color: var(--muted);">Preparando componentes</p>
-        </div>
-      </div>
-    {:then { default: Component }}
-      <Component />
-    {:catch error}
-      <div class="tool-panel" id="panel-lazy-error">
-        <div class="panel-header">
-          <h2><i data-lucide="alert-circle"></i> Error al cargar</h2>
-          <p>No se pudo cargar la herramienta seleccionada.</p>
-        </div>
-        <div class="output" style="border-color: #e0a8a8; background: #fff4f2; color: #9a483d; min-height: auto;">
-          <p style="font-weight: 600;">Detalles técnicos:</p>
-          <pre style="font-size: 0.8rem; margin-top: 8px; overflow: auto;">{error.message}</pre>
-          <div class="btn-row" style="margin-top: 12px;">
-            <button class="btn" onclick={() => { activeTool.trigger += 1; }}>
-              <i data-lucide="rotate-cw"></i> Reintentar
-            </button>
-          </div>
-        </div>
-      </div>
-    {/await}
-  {/if}
-{/key}
+{#each components as entry (entry.loader)}
+  <entry.Component />
+{/each}
+
+{#if loadingId}
+  <div class="tool-panel" id="panel-lazy-loading" role="status">
+    <div class="panel-header">
+      <h2><span class="lazy-spinner"></span> Cargando herramienta...</h2>
+      <p>Preparando los componentes necesarios.</p>
+    </div>
+  </div>
+{:else if loadError}
+  <div class="tool-panel" id="panel-lazy-error" role="alert">
+    <div class="panel-header">
+      <h2><i data-lucide="alert-circle"></i> No se pudo cargar la herramienta</h2>
+      <p>Comprueba tu conexión y vuelve a intentarlo. Si el error continúa, recarga la aplicación.</p>
+    </div>
+    <div class="btn-row">
+      <button class="btn" onclick={() => { activeTool.trigger += 1; }}>
+        <i data-lucide="rotate-cw"></i> Reintentar
+      </button>
+      <button class="btn btn-quiet" onclick={() => window.location.reload()}>Recargar aplicación</button>
+    </div>
+  </div>
+{/if}

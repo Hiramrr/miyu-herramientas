@@ -3,19 +3,19 @@
   import { activeTool } from '../tools/activeTool.svelte.js';
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" id="app-sidebar">
   <div class="sidebar-header">
-    <pre class="brand-ascii" aria-hidden="true"> ▒▒▒▒         ▒▒▒▒
-     ▒▒▒▒▒▒▒░░░░░░▒▒▒▒
-       ▒▒░░░▒▒▒░░▒▒▒░▒▒
-       ▒▒▓▒▓▒░░░░▒▒▓█▓▒
-      ▒░▒▓▓▓▒▒▒░░░▒▒▓▓▒▒
-      ░▒▒░░░░░░▒▒▒▒▒▒▒▒▒
-      ░░▒▒▒░░░▒▓▓▓▓▓▓▒▒▒
-      ░░░▒░░░░░▒▓▓█▓▒▒▒▒
-      ░░░░░░▒▒▒▒▒▓▓▓▓▓▓▒▒
-      ░░░░░░░▒▒▓▓▓▓▓▓▓▓
-      ░░░░░░▒▒▒▒▓▓▓▓▓▓▓</pre>
+    <pre class="brand-ascii" aria-hidden="true">▒▒▒▒         ▒▒▒▒
+ ▒▒▒▒▒▒▒░░░░░░▒▒▒▒
+  ▒▒░░░▒▒▒░░▒▒▒░▒▒
+  ▒▒▓▒▓▒░░░░▒▒▓█▓▒
+ ▒░▒▓▓▓▒▒▒░░░▒▒▓▓▒▒
+ ░▒▒░░░░░░▒▒▒▒▒▒▒▒▒
+ ░░▒▒▒░░░▒▓▓▓▓▓▓▒▒▒
+ ░░░▒░░░░░▒▓▓█▓▒▒▒▒
+░░░░░░▒▒▒▒▒▓▓▓▓▓▓▒▒
+░░░░░░░▒▒▓▓▓▓▓▓▓▓
+░░░░░░▒▒▒▒▓▓▓▓▓▓▓</pre>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
       <h1>miyu-herramientas</h1>
       <div style="display:flex;gap:6px">
@@ -32,7 +32,7 @@
 
   <div class="sidebar-search">
     <i data-lucide="search"></i>
-    <input id="sidebar-search" type="text" placeholder="Buscar herramienta...">
+    <input id="sidebar-search" type="text" placeholder="Buscar herramienta" aria-label="Buscar herramienta en el menú">
   </div>
 
   <div class="tool-list">
@@ -46,10 +46,8 @@
         role="button"
         tabindex="0"
       >
-        <i data-lucide="layout-grid"></i>
         <div class="tool-info">
           <div class="tool-name">Todas las herramientas</div>
-          <div class="tool-desc">Explora las utilidades disponibles</div>
         </div>
       </div>
     </div>
@@ -57,10 +55,10 @@
       <div class="tool-section-title">Favoritas</div>
       <div id="sidebar-favorites-list"></div>
     </div>
-    {#each toolSections as section}
+    {#each toolSections as section (section.id)}
       <div class="tool-section" data-section={section.id}>
         <div class="tool-section-title">{section.title}</div>
-        {#each section.tools as tool}
+        {#each section.tools as tool (tool.id)}
           <div
             class:active={activeTool.id === tool.id}
             class="tool-item"

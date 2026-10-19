@@ -195,9 +195,9 @@
     <div class="palette-select-wrap">
       <label for="palette-strategy">Estrategia</label>
       <select id="palette-strategy" bind:value={strategy} on:change={regeneratePalette}>
-        {#each Object.entries(STRATEGY_CATEGORIES) as [category, label]}
+        {#each Object.entries(STRATEGY_CATEGORIES) as [category, label] (category)}
           <optgroup label={label}>
-            {#each groupedStrategies[category] as item}
+            {#each groupedStrategies[category] as item (item.key)}
               <option value={item.key}>{item.info.name}</option>
             {/each}
           </optgroup>

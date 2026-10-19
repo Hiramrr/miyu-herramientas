@@ -1,5 +1,7 @@
 <script>
   import { tick } from 'svelte';
+  import { destroyPdfDocument, loadPdfLib, openPdfDocument } from './pdfRuntime.js';
+  import { canvasDeltaToPdf, cropPdfPages, cropMarginsToCanvas, cropScale } from './pdfHelpers.js';
 
   const pageNumberPositions = [
     { value: 'bottom-center', label: 'Abajo centro' },
@@ -94,23 +96,12 @@
   let rotatePreviewImg = '';
   let rotateCanvas;
   let rotatePreviewError = false;
-  let rotatePreviewTotal = 1;
   let rotatePreviewPage = 1;
 
   let removePreviewImg = '';
   let removeCanvas;
   let removePreviewError = false;
   let removePreviewTotal = 1;
-  let removePreviewPage = 1;
-
-  let pdfWorkerReady = false;
-  function initPdfWorker() {
-    if (pdfWorkerReady || !window.pdfjsLib) return;
-    try {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      pdfWorkerReady = true;
-    } catch (e) {}
-  }
 
   let signFileInput;
   let cropFileInput;
@@ -143,34 +134,61 @@
   }
 
   function getPdfLib() {
-    if (!window.PDFLib) throw new Error('PDFLib no está disponible.');
-    return window.PDFLib;
+    return loadPdfLib();
+  }
+
+  const previewCache = new WeakMap();
+
+  function loadPreviewImage(url) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
   }
 
   async function renderPdfPage(file, targetCanvas, pageNum) {
     if (!file || !targetCanvas) return '';
-    if (!window.pdfjsLib) return '';
-    initPdfWorker();
     try {
-      const buf = await file.arrayBuffer();
-      const loadingTask = window.pdfjsLib.getDocument({ data: buf, disableAutoFetch: true, disableStream: true });
-      const pdf = await Promise.race([
-        loadingTask.promise,
+      let perFile = previewCache.get(file);
+      if (!perFile) {
+        perFile = {};
+        previewCache.set(file, perFile);
+      }
+      if (!perFile[pageNum]) {
+        perFile[pageNum] = (async () => {
+          let pdf;
+          try {
+          pdf = await openPdfDocument(await file.arrayBuffer(), { disableAutoFetch: true, disableStream: true });
+          const total = pdf.numPages;
+          const num = Math.min(Math.max(pageNum, 1), total);
+          const page = await pdf.getPage(num);
+          const viewport = page.getViewport({ scale: 1 });
+          const scale = Math.min(400 / viewport.width, 520 / viewport.height, 1.8);
+          const scaled = page.getViewport({ scale });
+          const offscreen = document.createElement('canvas');
+          offscreen.width = scaled.width;
+          offscreen.height = scaled.height;
+          const ctx = offscreen.getContext('2d');
+          ctx.fillStyle = '#fff';
+          ctx.fillRect(0, 0, scaled.width, scaled.height);
+          await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+          return { url: offscreen.toDataURL('image/png'), total, pdfW: viewport.width, pdfH: viewport.height, canvasW: scaled.width, canvasH: scaled.height };
+          } finally {
+            await destroyPdfDocument(pdf);
+          }
+        })();
+      }
+      const result = await Promise.race([
+        perFile[pageNum],
         new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 12000))
       ]);
-      const total = pdf.numPages;
-      const num = Math.min(Math.max(pageNum, 1), total);
-      const page = await pdf.getPage(num);
-      const viewport = page.getViewport({ scale: 1 });
-      const scale = Math.min(400 / viewport.width, 520 / viewport.height, 1.8);
-      const scaled = page.getViewport({ scale });
-      targetCanvas.width = scaled.width;
-      targetCanvas.height = scaled.height;
-      const ctx = targetCanvas.getContext('2d');
-      ctx.fillStyle = '#fff';
-      ctx.fillRect(0, 0, scaled.width, scaled.height);
-      await page.render({ canvasContext: ctx, viewport: scaled }).promise;
-      return { url: targetCanvas.toDataURL('image/png'), total, pdfW: viewport.width, pdfH: viewport.height };
+      targetCanvas.width = result.canvasW;
+      targetCanvas.height = result.canvasH;
+      const img = await loadPreviewImage(result.url);
+      targetCanvas.getContext('2d').drawImage(img, 0, 0, result.canvasW, result.canvasH);
+      return result;
     } catch (e) {
       console.error('Preview error:', e);
       return '';
@@ -204,7 +222,6 @@
       ctx.drawImage(img, 0, 0, w, h);
       const size = Number(signSize);
       const margin = 42;
-      const scale = w / (w / (Math.min(400 / (w / (w / 1)), 1)));
       const boxW = signMode === 'image' ? (signImageBytes ? size : 80) : (size / 3) * (signText.length * 0.65);
       const boxH = signMode === 'image' ? (signImageBytes ? size : 50) : size / 3;
       let x, y;
@@ -321,7 +338,6 @@
     const result = await renderPdfPage(rotateFile, rotateCanvas, pageNum);
     if (result) {
       rotatePreviewError = false;
-      rotatePreviewTotal = result.total;
       rotatePreviewPage = Math.min(pageNum, result.total);
       rotatePreviewImg = result.url;
       await tick();
@@ -366,7 +382,7 @@
     img.src = rotatePreviewImg;
   }
 
-  $: if (rotateFile && rotateCanvas) { void rotateAngle, void rotateAllPages, void rotatePreviewPage; updateRotatePreview(); }
+  $: if (rotateFile && rotateCanvas) { void rotateAngle, void rotateAllPages; updateRotatePreview(); }
 
   async function updateRemovePreview() {
     if (!removeFile || !removeCanvas) return;
@@ -374,7 +390,6 @@
     if (result) {
       removePreviewError = false;
       removePreviewTotal = result.total;
-      removePreviewPage = 1;
       removePreviewImg = result.url;
       await tick();
       drawRemoveOverlay();
@@ -409,7 +424,7 @@
   $: if (removeFile && removeCanvas) { void removePages; updateRemovePreview(); }
 
   function parsePages(value, total) {
-    const result = new Set();
+    const result = [];
     const chunks = (value || '').split(',').map((part) => part.trim()).filter(Boolean);
     for (const chunk of chunks) {
       const range = chunk.match(/^(\d+)\s*-\s*(\d+)$/);
@@ -418,19 +433,19 @@
         const end = Number(range[2]);
         const step = start <= end ? 1 : -1;
         for (let page = start; step > 0 ? page <= end : page >= end; page += step) {
-          if (page >= 1 && page <= total) result.add(page);
+          if (page >= 1 && page <= total && !result.includes(page)) result.push(page);
         }
       } else {
         const page = Number(chunk);
-        if (page >= 1 && page <= total) result.add(page);
+        if (page >= 1 && page <= total && !result.includes(page)) result.push(page);
       }
     }
-    return Array.from(result).sort((a, b) => a - b);
+    return result.sort((a, b) => a - b);
   }
 
   async function rotatePdf() {
     try {
-      const { degrees } = getPdfLib();
+      const { degrees } = await getPdfLib();
       const src = await readPdf(rotateFile);
       const total = src.getPageCount();
       const angle = Number(rotateAngle) || 90;
@@ -440,13 +455,13 @@
         if (!pagesToRotate.length) throw new Error('Especifica al menos una página válida.');
       }
 
-      const { PDFDocument } = getPdfLib();
+      const { PDFDocument } = await getPdfLib();
       const out = await PDFDocument.create();
       const copied = await out.copyPages(src, src.getPageIndices());
       for (let i = 0; i < copied.length; i++) {
         const p = copied[i];
         if (rotateAllPages || pagesToRotate.includes(i + 1)) {
-          const curr = p.getRotation().degrees;
+          const curr = p.getRotation().angle;
           p.setRotation(degrees(curr + angle));
         }
         out.addPage(p);
@@ -473,7 +488,7 @@
       }
       if (!keep.length) throw new Error('No puedes eliminar todas las páginas.');
 
-      const { PDFDocument } = getPdfLib();
+      const { PDFDocument } = await getPdfLib();
       const out = await PDFDocument.create();
       const copied = await out.copyPages(src, keep);
       for (const p of copied) out.addPage(p);
@@ -502,7 +517,7 @@
 
   function getCropScale() {
     if (!cropCanvas || !cropPdfW) return 1;
-    return cropCanvas.width / cropPdfW;
+    return cropScale(cropCanvas.width, cropPdfW);
   }
 
   function drawCropOverlay() {
@@ -514,10 +529,14 @@
       const ctx = cropCanvas.getContext('2d');
       const w = cropCanvas.width;
       const h = cropCanvas.height;
-      const top = Number(cropTop) || 0;
-      const right = Number(cropRight) || 0;
-      const bottom = Number(cropBottom) || 0;
-      const left = Number(cropLeft) || 0;
+      const scaledMargins = cropMarginsToCanvas(
+        { top: cropTop, right: cropRight, bottom: cropBottom, left: cropLeft },
+        getCropScale()
+      );
+      const top = scaledMargins.top;
+      const right = scaledMargins.right;
+      const bottom = scaledMargins.bottom;
+      const left = scaledMargins.left;
 
       function paint() {
         ctx.clearRect(0, 0, w, h);
@@ -566,10 +585,14 @@
     if (!cropCanvas) return null;
     const w = cropCanvas.width;
     const h = cropCanvas.height;
-    const t = Number(cropTop) || 0;
-    const r = Number(cropRight) || 0;
-    const b = Number(cropBottom) || 0;
-    const l = Number(cropLeft) || 0;
+    const scaledMargins = cropMarginsToCanvas(
+      { top: cropTop, right: cropRight, bottom: cropBottom, left: cropLeft },
+      getCropScale()
+    );
+    const t = scaledMargins.top;
+    const r = scaledMargins.right;
+    const b = scaledMargins.bottom;
+    const l = scaledMargins.left;
     const cx = l, cy = t, cw = w - l - r, ch = h - t - b;
     const near = 14;
     const corners = [
@@ -616,12 +639,13 @@
     const sy = cropCanvas.height / rect.height;
     const x = (e.clientX - rect.left) * sx;
     const y = (e.clientY - rect.top) * sy;
-    const dx = x - cropDragStart.x;
-    const dy = y - cropDragStart.y;
-    const maxW = cropCanvas.width - 40;
-    const maxH = cropCanvas.height - 40;
+    const scale = getCropScale();
+    const dx = canvasDeltaToPdf(x - cropDragStart.x, scale);
+    const dy = canvasDeltaToPdf(y - cropDragStart.y, scale);
+    const maxW = cropPdfW || canvasDeltaToPdf(cropCanvas.width, scale);
+    const maxH = cropPdfH || canvasDeltaToPdf(cropCanvas.height, scale);
     let nt = cropDragStart.top, nr = cropDragStart.right, nb = cropDragStart.bottom, nl = cropDragStart.left;
-    const cap = (v, opp, mx) => Math.max(0, Math.min(v, mx - opp));
+    const cap = (v, opp, mx) => Math.max(0, Math.min(v, mx - opp - 20));
     if (cropDragHandle === 'top') nt = cap(cropDragStart.top + dy, nb, maxH);
     else if (cropDragHandle === 'bottom') nb = cap(cropDragStart.bottom - dy, nt, maxH);
     else if (cropDragHandle === 'left') nl = cap(cropDragStart.left + dx, nr, maxW);
@@ -706,7 +730,6 @@
       rotateInfo = file ? 'PDF listo para rotar.' : '';
       rotatePreviewImg = '';
       rotatePreviewError = false;
-      rotatePreviewTotal = 1;
       rotatePreviewPage = 1;
     }
     if (kind === 'remove') {
@@ -716,29 +739,32 @@
       removePreviewImg = '';
       removePreviewError = false;
       removePreviewTotal = 1;
-      removePreviewPage = 1;
     }
   }
 
   function clearFile(kind, inputRef) {
+    const fileByKind = { organize: organizeFile, numbers: pageNumberFile, watermark: watermarkFile, sign: signFile, crop: cropFile, metadata: metadataFile, rotate: rotateFile, remove: removeFile };
+    if (fileByKind[kind]) previewCache.delete(fileByKind[kind]);
     if (kind === 'organize') { organizeFile = null; organizeOutput = null; organizeInfo = ''; organizeOrder = ''; organizePageCount = 0; }
     if (kind === 'numbers') { pageNumberFile = null; pageNumberOutput = null; pageNumberInfo = ''; numberPreviewImg = ''; numberPreviewError = false; }
     if (kind === 'watermark') { watermarkFile = null; watermarkOutput = null; watermarkInfo = ''; watermarkPreviewImg = ''; watermarkPreviewError = false; }
     if (kind === 'sign') { signFile = null; signOutput = null; signInfo = ''; signPreviewImg = ''; signPreviewTotal = 1; signPreviewError = false; signImageFile = null; signImageBytes = null; }
     if (kind === 'crop') { cropFile = null; cropOutput = null; cropInfo = ''; cropPreviewImg = ''; cropPreviewError = false; cropPdfW = 0; cropPdfH = 0; cropBaseImage = null; }
     if (kind === 'metadata') { metadataFile = null; metadataOutput = null; metadataInfo = ''; }
-    if (kind === 'rotate') { rotateFile = null; rotateOutput = null; rotateInfo = ''; rotatePreviewImg = ''; rotatePreviewError = false; rotatePreviewTotal = 1; rotatePreviewPage = 1; }
-    if (kind === 'remove') { removeFile = null; removeOutput = null; removeInfo = ''; removePreviewImg = ''; removePreviewError = false; removePreviewTotal = 1; removePreviewPage = 1; }
+    if (kind === 'rotate') { rotateFile = null; rotateOutput = null; rotateInfo = ''; rotatePreviewImg = ''; rotatePreviewError = false; rotatePreviewPage = 1; }
+    if (kind === 'remove') { removeFile = null; removeOutput = null; removeInfo = ''; removePreviewImg = ''; removePreviewError = false; removePreviewTotal = 1; }
     if (inputRef) inputRef.value = '';
   }
 
   async function countOrganizePages(file) {
-    if (!window.pdfjsLib) return;
     try {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      organizePageCount = pdf.numPages;
-    } catch (e) {
+      const pdf = await openPdfDocument(await file.arrayBuffer());
+      try {
+        organizePageCount = pdf.numPages;
+      } finally {
+        await destroyPdfDocument(pdf);
+      }
+    } catch {
       organizePageCount = 0;
     }
   }
@@ -765,13 +791,13 @@
 
   async function readPdf(file) {
     if (!file) throw new Error('Selecciona un PDF primero.');
-    const { PDFDocument } = getPdfLib();
+    const { PDFDocument } = await getPdfLib();
     return PDFDocument.load(await file.arrayBuffer(), { ignoreEncryption: true });
   }
 
   async function organizePdf(mode = 'custom') {
     try {
-      const { PDFDocument } = getPdfLib();
+      const { PDFDocument } = await getPdfLib();
       const source = await readPdf(organizeFile);
       const total = source.getPageCount();
       let order = [];
@@ -813,7 +839,7 @@
 
   async function addPageNumbers() {
     try {
-      const { StandardFonts, rgb } = getPdfLib();
+      const { StandardFonts, rgb } = await getPdfLib();
       const pdf = await readPdf(pageNumberFile);
       const font = await pdf.embedFont(StandardFonts.Helvetica);
       const pages = pdf.getPages();
@@ -850,7 +876,7 @@
 
   async function addWatermark() {
     try {
-      const { StandardFonts, degrees, rgb } = getPdfLib();
+      const { StandardFonts, degrees, rgb } = await getPdfLib();
       const pdf = await readPdf(watermarkFile);
       const font = await pdf.embedFont(StandardFonts.HelveticaBold);
       const color = hexToRgb(watermarkColor);
@@ -900,7 +926,7 @@
 
   async function addSignature() {
     try {
-      const { StandardFonts, rgb } = getPdfLib();
+      const { StandardFonts, rgb } = await getPdfLib();
       const pdf = await readPdf(signFile);
       const pages = targetPages(pdf, signPage);
       const color = hexToRgb(signColor);
@@ -939,30 +965,11 @@
     try {
       const srcPdf = await readPdf(cropFile);
       const pages = srcPdf.getPages();
-      const { PDFDocument } = getPdfLib();
-      const outPdf = await PDFDocument.create();
+      const margins = { top: cropTop, right: cropRight, bottom: cropBottom, left: cropLeft };
 
-      for (const page of pages) {
-        const { width, height } = page.getSize();
-        const left = Number(cropLeft) || 0;
-        const right = Number(cropRight) || 0;
-        const top = Number(cropTop) || 0;
-        const bottom = Number(cropBottom) || 0;
-        const cropWidth = width - left - right;
-        const cropHeight = height - top - bottom;
-        if (cropWidth <= 20 || cropHeight <= 20) throw new Error('Los márgenes son demasiado grandes para el tamaño del PDF.');
+      cropPdfPages(pages, margins);
 
-        const [embedded] = await outPdf.embedPages([page]);
-        const newPage = outPdf.addPage([cropWidth, cropHeight]);
-        newPage.drawPage(embedded, {
-          x: -left,
-          y: -bottom,
-          width,
-          height,
-        });
-      }
-
-      const bytes = await outPdf.save();
+      const bytes = await srcPdf.save();
       cropOutput = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
       cropInfo = `Recorte aplicado a ${pages.length} páginas.`;
     } catch (error) {
@@ -1079,7 +1086,7 @@
         <div>
           <label for="pdf-page-number-position">Posición</label>
           <select id="pdf-page-number-position" bind:value={pageNumberPosition}>
-            {#each pageNumberPositions as position}
+            {#each pageNumberPositions as position (position.value)}
               <option value={position.value}>{position.label}</option>
             {/each}
           </select>

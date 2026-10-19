@@ -20,11 +20,11 @@
   let icons = [];
   let status = 'Selecciona una imagen cuadrada o con buen margen para generar iconos.';
 
-  $: htmlSnippet = `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  const htmlSnippet = `<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 <link rel="manifest" href="/site.webmanifest">`;
-  $: manifestSnippet = JSON.stringify({
+  const manifestSnippet = JSON.stringify({
     icons: [
       { src: '/android-chrome-192x192.png', sizes: '192x192', type: 'image/png' },
       { src: '/android-chrome-512x512.png', sizes: '512x512', type: 'image/png' },
@@ -160,7 +160,7 @@
 
   {#if icons.length}
     <div class="favicon-icons">
-      {#each icons as icon}
+      {#each icons as icon (icon.size)}
         <button class="favicon-icon-card" type="button" onclick={() => downloadIcon(icon)}>
           <img src={icon.url} alt={icon.label}>
           <strong>{icon.label}</strong>

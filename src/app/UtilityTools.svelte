@@ -1,5 +1,4 @@
 <script>
-  import { activeTool } from '../tools/activeTool.svelte.js';
   import { onDestroy } from 'svelte';
 
   // --- Unit ---
@@ -38,9 +37,13 @@
   let randOutput = '';
 
   function generateRandom() {
-    var mn = parseInt(randMin) || 0;
-    var mx = parseInt(randMax) || 1;
-    var ct = parseInt(randCount) || 1;
+    var mn = Number.parseInt(randMin);
+    var mx = Number.parseInt(randMax);
+    var ct = Number.parseInt(randCount);
+    if (![mn, mx, ct].every(Number.isSafeInteger) || ct < 1 || ct > 50) {
+      randOutput = 'Escribe límites enteros y una cantidad entre 1 y 50.';
+      return;
+    }
     if (mn > mx) {
       var tmp = mn;
       mn = mx;
@@ -76,7 +79,7 @@
       var d = new Date(s);
       if (isNaN(d.getTime())) throw new Error();
       tsOutput = String(Math.floor(d.getTime() / 1000));
-    } catch (e) {
+    } catch {
       tsOutput = 'Fecha inválida';
     }
   }
@@ -84,13 +87,16 @@
   // --- Timer ---
   let timerDisplay = '00:00:00';
   let timerMin = 5;
-
-  let swI = null;
-  let swS = 0;
-  let cdI = null;
-  let cdS = 0;
+  let timerMode = 'stopwatch';
+  let timerMessage = '';
+  let timerInterval = null;
+  let swElapsed = 0;
+  let swStartedAt = null;
+  let cdRemaining = 0;
+  let cdEndsAt = null;
 
   function fmt(s) {
+    s = Math.max(0, Math.floor(s));
     return (
       String(Math.floor(s / 3600)).padStart(2, '0') +
       ':' +
@@ -100,55 +106,99 @@
     );
   }
 
+  function clearTicker() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+
+  function updateTimer() {
+    const now = Date.now();
+    if (timerMode === 'stopwatch') {
+      timerDisplay = fmt((swElapsed + (swStartedAt === null ? 0 : now - swStartedAt)) / 1000);
+    } else {
+      const remaining = cdEndsAt === null ? cdRemaining : Math.max(0, cdEndsAt - now);
+      timerDisplay = fmt(Math.ceil(remaining / 1000));
+      if (cdEndsAt !== null && remaining === 0) {
+        cdRemaining = 0;
+        cdEndsAt = null;
+        timerMessage = 'Temporizador terminado.';
+        clearTicker();
+      }
+    }
+  }
+
+  function startTicker() {
+    clearTicker();
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 200);
+  }
+
   function startStopwatch() {
-    if (swI) return;
-    swI = setInterval(() => {
-      swS++;
-      timerDisplay = fmt(swS);
-    }, 1000);
+    pauseCountdown();
+    timerMode = 'stopwatch';
+    timerMessage = '';
+    if (swStartedAt === null) swStartedAt = Date.now();
+    startTicker();
   }
 
   function pauseStopwatch() {
-    clearInterval(swI);
-    swI = null;
+    if (swStartedAt !== null) {
+      swElapsed += Date.now() - swStartedAt;
+      swStartedAt = null;
+    }
+    if (timerMode === 'stopwatch') {
+      clearTicker();
+      updateTimer();
+    }
   }
 
   function resetStopwatch() {
     pauseStopwatch();
-    swS = 0;
-    timerDisplay = '00:00:00';
+    pauseCountdown();
+    swElapsed = 0;
+    timerMode = 'stopwatch';
+    timerMessage = '';
+    updateTimer();
   }
 
   function startCountdown() {
-    var m = parseInt(timerMin) || 0;
-    cdS = m * 60;
-    if (cdI) return;
-    cdI = setInterval(() => {
-      if (cdS <= 0) {
-        clearInterval(cdI);
-        cdI = null;
-        return;
-      }
-      cdS--;
-      timerDisplay = fmt(cdS);
-    }, 1000);
+    const minutes = Number(timerMin);
+    if (!Number.isFinite(minutes) || minutes <= 0 || minutes > 180) {
+      timerMessage = 'Escribe una duración mayor que cero y de hasta 180 minutos.';
+      return;
+    }
+    if (cdEndsAt !== null) return;
+    pauseStopwatch();
+    timerMode = 'countdown';
+    timerMessage = '';
+    if (cdRemaining <= 0) cdRemaining = minutes * 60000;
+    cdEndsAt = Date.now() + cdRemaining;
+    startTicker();
   }
 
   function pauseCountdown() {
-    clearInterval(cdI);
-    cdI = null;
+    if (cdEndsAt !== null) {
+      cdRemaining = Math.max(0, cdEndsAt - Date.now());
+      cdEndsAt = null;
+    }
+    if (timerMode === 'countdown') {
+      clearTicker();
+      updateTimer();
+    }
   }
 
   function resetCountdown() {
     pauseCountdown();
-    cdS = 0;
-    timerDisplay = '00:00:00';
+    pauseStopwatch();
+    cdRemaining = Math.max(0, Number(timerMin) || 0) * 60000;
+    timerMode = 'countdown';
+    timerMessage = '';
+    updateTimer();
   }
 
   function setPreset(m) {
     timerMin = m;
     resetCountdown();
-    timerDisplay = fmt(m * 60);
   }
 
   // --- Notes (enhanced manager) ---
@@ -157,13 +207,12 @@
   let noteTitle = '';
   let noteBody = '';
   let noteMeta = '';
-  let saveTimer = null;
 
   function readJSON(key, fallback) {
     try {
       var value = localStorage.getItem(key);
       return value ? JSON.parse(value) : fallback;
-    } catch (e) {
+    } catch {
       return fallback;
     }
   }
@@ -181,10 +230,16 @@
   }
 
   function persistNotes() {
-    saveJSON('mh-notes-v2', notesData);
-    localStorage.setItem('mh-active-note', activeId || '');
-    var note = currentNote();
-    if (note) localStorage.setItem('quickNotes', note.body || '');
+    try {
+      saveJSON('mh-notes-v2', notesData);
+      localStorage.setItem('mh-active-note', activeId || '');
+      var note = currentNote();
+      if (note) localStorage.setItem('quickNotes', note.body || '');
+      return true;
+    } catch {
+      noteMeta = 'No se pudo guardar en este navegador. Copia o descarga la nota para conservarla.';
+      return false;
+    }
   }
 
   function notePreview(note) {
@@ -207,17 +262,14 @@
     note.title = noteTitle.trim() || 'Sin título';
     note.body = noteBody;
     note.updatedAt = Date.now();
-    noteMeta = 'Guardando...';
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      persistNotes();
-      notesData = notesData;
+    notesData = [...notesData];
+    if (persistNotes()) {
       noteMeta = 'Guardado · ' + new Date(note.updatedAt).toLocaleString();
-    }, 180);
+    }
   }
 
   function createNote() {
-    var note = { id: 'note-' + Date.now(), title: 'Nueva nota', body: '', updatedAt: Date.now() };
+    var note = { id: 'note-' + crypto.randomUUID(), title: 'Nueva nota', body: '', updatedAt: Date.now() };
     notesData.unshift(note);
     activeId = note.id;
     persistNotes();
@@ -289,13 +341,10 @@
   initNotes();
 
   onDestroy(() => {
-    if (saveTimer) clearTimeout(saveTimer);
-    if (swI) clearInterval(swI);
-    if (cdI) clearInterval(cdI);
+    clearTicker();
   });
 </script>
 
-{#if activeTool.id === 'unit'}
   <div class="tool-panel" id="panel-unit">
     <div class="panel-header">
       <h2><i data-lucide="ruler"></i> Conversor de Unidades</h2>
@@ -333,9 +382,7 @@
     >
     <div class="output" id="unit-output">{unitOutput}</div>
   </div>
-{/if}
 
-{#if activeTool.id === 'random'}
   <div class="tool-panel" id="panel-random">
     <div class="panel-header">
       <h2><i data-lucide="dice-5"></i> Generador de Números Aleatorios</h2>
@@ -365,9 +412,7 @@
     </div>
     <div class="output" id="rand-output" style="font-size:1.1rem;font-weight:600">{randOutput}</div>
   </div>
-{/if}
 
-{#if activeTool.id === 'timestamp'}
   <div class="tool-panel" id="panel-timestamp">
     <div class="panel-header">
       <h2><i data-lucide="clock"></i> Timestamp / Fecha</h2>
@@ -381,15 +426,14 @@
     <button class="btn" onclick={dateToTs}><i data-lucide="arrow-right"></i> A Timestamp</button>
     <div class="output" id="ts-output" style="font-family:monospace">{tsOutput}</div>
   </div>
-{/if}
 
-{#if activeTool.id === 'timer'}
   <div class="tool-panel" id="panel-timer">
     <div class="panel-header">
       <h2><i data-lucide="timer"></i> Cronómetro y Temporizador</h2>
       <p>Mide tiempos con el cronómetro o usa la cuenta regresiva</p>
     </div>
     <div class="timer-display" id="timer-display">{timerDisplay}</div>
+    <div id="timer-status" class="tool-status" role="status">{timerMessage || (timerMode === 'stopwatch' ? 'Cronómetro' : 'Cuenta atrás')}</div>
     <div class="timer-controls">
       <button class="btn" onclick={startStopwatch}><i data-lucide="play"></i> Iniciar</button>
       <button class="btn" onclick={pauseStopwatch}><i data-lucide="pause"></i> Pausar</button>
@@ -399,7 +443,7 @@
     </div>
     <hr />
     <label for="timer-min">Temporizador (minutos)</label>
-    <input type="number" id="timer-min" bind:value={timerMin} min="0" max="180" />
+    <input type="number" id="timer-min" bind:value={timerMin} min="0.01" max="180" step="0.01" onchange={resetCountdown} />
     <div class="tool-presets" id="timer-presets">
       <button class="btn" type="button" onclick={() => setPreset(5)}
         ><i data-lucide="clock"></i> 5 min</button
@@ -422,9 +466,7 @@
       >
     </div>
   </div>
-{/if}
 
-{#if activeTool.id === 'notes'}
   <div class="tool-panel" id="panel-notes">
     <div class="panel-header">
       <h2><i data-lucide="notebook"></i> Notas Rápidas</h2>
@@ -438,7 +480,7 @@
           >
         </div>
         <div class="notes-list" id="notes-list">
-          {#each [...notesData].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)) as note}
+          {#each [...notesData].sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)) as note (note.id)}
             <button
               class="note-list-item {note.id === activeId ? 'active' : ''}"
               type="button"
@@ -484,4 +526,3 @@
       </div>
     </div>
   </div>
-{/if}

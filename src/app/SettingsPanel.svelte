@@ -71,7 +71,7 @@
         <span class="toggle-switch"></span>
       </label>
       <div class="theme-chip-grid" id="theme-chip-grid">
-        {#each themes as theme}
+        {#each themes as theme (theme.id)}
           <button
             class="theme-chip"
             data-theme={theme.id}
@@ -88,7 +88,7 @@
         <span class="settings-row-label">Tamaño de fuente</span>
       </div>
       <div class="btn-grid settings-btn-grid" id="setting-font-size-grid">
-        {#each fontSizes as fs}
+        {#each fontSizes as fs (fs.id)}
           <button class="base-btn" data-font-size={fs.id}>{fs.name}</button>
         {/each}
       </div>
@@ -105,7 +105,7 @@
         <span class="settings-row-label">Densidad</span>
       </div>
       <div class="btn-grid settings-btn-grid" id="setting-density-grid">
-        {#each densities as d}
+        {#each densities as d (d.id)}
           <button class="base-btn" data-density={d.id}>{d.name}</button>
         {/each}
       </div>
@@ -177,7 +177,7 @@
         <span class="settings-row-label">Estilo de cuadrícula</span>
       </div>
       <div class="btn-grid settings-btn-grid" id="setting-grid-style-grid">
-        {#each gridStyles as gs}
+        {#each gridStyles as gs (gs.id)}
           <button class="base-btn" data-grid-style={gs.id}>{gs.name}</button>
         {/each}
       </div>
@@ -240,7 +240,7 @@
         <div class="auto-theme-row">
           <label for="setting-day-theme">Día</label>
           <select id="setting-day-theme">
-            {#each themes.filter(t => t.id !== 'custom') as theme}
+            {#each themes.filter(t => t.id !== 'custom') as theme (theme.id)}
               <option value={theme.id}>{theme.name}</option>
             {/each}
           </select>
@@ -248,7 +248,7 @@
         <div class="auto-theme-row">
           <label for="setting-night-theme">Noche</label>
           <select id="setting-night-theme">
-            {#each themes.filter(t => t.id !== 'custom') as theme}
+            {#each themes.filter(t => t.id !== 'custom') as theme (theme.id)}
               <option value={theme.id}>{theme.name}</option>
             {/each}
           </select>

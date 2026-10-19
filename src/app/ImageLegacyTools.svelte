@@ -1,6 +1,5 @@
 <script>
   import QRCode from 'qrcode';
-  import { activeTool } from '../tools/activeTool.svelte.js';
 
   const qrModuleShapes = [
     { value: 'square', label: 'Cuadros' },
@@ -350,7 +349,6 @@
   }
 </script>
 
-{#if activeTool.id === 'qr'}
 <div class="tool-panel" id="panel-qr">
       <div class="panel-header">
         <h2><i data-lucide="qr-code"></i> Código QR</h2>
@@ -398,7 +396,7 @@
             <div>
               <label for="qr-module-shape">Forma de módulos</label>
               <select id="qr-module-shape" bind:value={qrModuleShape} onchange={regenerateQRIfReady}>
-                {#each qrModuleShapes as shape}
+                {#each qrModuleShapes as shape (shape.value)}
                   <option value={shape.value}>{shape.label}</option>
                 {/each}
               </select>
@@ -407,7 +405,7 @@
             <div>
               <label for="qr-eye-shape">Forma de esquinas</label>
               <select id="qr-eye-shape" bind:value={qrEyeShape} onchange={regenerateQRIfReady}>
-                {#each qrEyeShapes as shape}
+                {#each qrEyeShapes as shape (shape.value)}
                   <option value={shape.value}>{shape.label}</option>
                 {/each}
               </select>
@@ -416,7 +414,7 @@
             <div>
               <label for="qr-error-correction">Corrección de errores</label>
               <select id="qr-error-correction" bind:value={qrErrorCorrection} onchange={regenerateQRIfReady}>
-                {#each qrErrorLevels as level}
+                {#each qrErrorLevels as level (level.value)}
                   <option value={level.value}>{level.label}</option>
                 {/each}
               </select>
@@ -585,9 +583,7 @@
         </div>
       </div>
     </div>
-{/if}
 
-{#if activeTool.id === 'image'}
 <div class="tool-panel" id="panel-image">
       <div class="panel-header">
         <h2><i data-lucide="image"></i> Imagen a Base64</h2>
@@ -597,4 +593,3 @@
       <div class="output" id="img-output"></div>
       <div class="btn-row"><button class="btn btn-green" onclick={copyImgBase64}><i data-lucide="copy"></i> Copiar Base64</button></div>
     </div>
-{/if}

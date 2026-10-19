@@ -1,5 +1,6 @@
 <script>
-  import { activeTool } from '../tools/activeTool.svelte.js';
+  import { destroyPdfDocument, loadPdfLib, openPdfDocument } from './pdfRuntime.js';
+  import { imageKind, unsupportedImageMessage } from './pdfHelpers.js';
 
   var _mergeFiles = [];
   var _mergedPDF;
@@ -101,10 +102,11 @@
     }
     document.getElementById('pdf-merge-output').textContent = 'Procesando...';
     try {
-      var merged = await PDFLib.PDFDocument.create();
+      var PDFDocument = (await loadPdfLib()).PDFDocument;
+      var merged = await PDFDocument.create();
       for (var i = 0; i < _mergeFiles.length; i++) {
         var buf = await _mergeFiles[i].arrayBuffer();
-        var src = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
+        var src = await PDFDocument.load(buf, { ignoreEncryption: true });
         var pages = await merged.copyPages(src, src.getPageIndices());
         for (var j = 0; j < pages.length; j++) {
           merged.addPage(pages[j]);
@@ -148,9 +150,7 @@
     document.getElementById('pdf-split-download').style.display = 'none';
     try {
       var buf = await f.arrayBuffer();
-      var pdfjsLib = window.pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var pdf = await openPdfDocument(buf);
       _splitTotalPages = pdf.numPages;
       for (var i = 1; i <= _splitTotalPages; i++) {
         var page = await pdf.getPage(i);
@@ -184,11 +184,13 @@
       wrap.style.display = 'block';
       prog.classList.remove('active');
       _splitSelected = [];
-      for (var i = 1; i <= _splitTotalPages; i++) _splitSelected.push(i);
+      for (i = 1; i <= _splitTotalPages; i++) _splitSelected.push(i);
       updateSplitSelectionUI();
     } catch (e) {
       document.getElementById('pdf-split-output').textContent = 'Error: ' + (e.message || 'no se pudo cargar el PDF');
       prog.classList.remove('active');
+    } finally {
+      await destroyPdfDocument(pdf);
     }
   }
 
@@ -249,8 +251,9 @@
     try {
       var f = document.getElementById('pdf-split-file').files[0];
       var buf = await f.arrayBuffer();
-      var src = await PDFLib.PDFDocument.load(buf, { ignoreEncryption: true });
-      var out = await PDFLib.PDFDocument.create();
+      var PDFDocument = (await loadPdfLib()).PDFDocument;
+      var src = await PDFDocument.load(buf, { ignoreEncryption: true });
+      var out = await PDFDocument.create();
       var copied = await out.copyPages(src, _splitSelected.map(function(p) { return p - 1; }));
       for (var i = 0; i < copied.length; i++) {
         out.addPage(copied[i]);
@@ -289,6 +292,22 @@
     }
   }
 
+  async function imageFileToPngBytes(file) {
+    try {
+      var bitmap = await createImageBitmap(file);
+      var canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0);
+      bitmap.close();
+      var blob = await new Promise(function(resolve) { canvas.toBlob(resolve, 'image/png'); });
+      if (!blob) throw new Error('conversion failed');
+      return new Uint8Array(await blob.arrayBuffer());
+    } catch (e) {
+      throw new Error('No se pudo leer ' + file.name + '. Prueba con el archivo original en PNG o JPEG.', { cause: e });
+    }
+  }
+
   async function imagesToPDF() {
     var files = document.getElementById('pdf-img2pdf-files').files;
     if (files.length === 0) {
@@ -297,15 +316,19 @@
     }
     document.getElementById('pdf-img2pdf-output').textContent = 'Procesando...';
     try {
-      var pdf = await PDFLib.PDFDocument.create();
       for (var i = 0; i < files.length; i++) {
-        var buf = await files[i].arrayBuffer();
-        var imgBytes = new Uint8Array(buf);
+        if (!imageKind(files[i])) throw new Error(unsupportedImageMessage(files[i]));
+      }
+      var PDFDocument = (await loadPdfLib()).PDFDocument;
+      var pdf = await PDFDocument.create();
+      for (i = 0; i < files.length; i++) {
+        var kind = imageKind(files[i]);
         var img;
-        if (files[i].type === 'image/png') {
-          img = await pdf.embedPng(imgBytes);
+        if (kind === 'webp') {
+          img = await pdf.embedPng(await imageFileToPngBytes(files[i]));
         } else {
-          img = await pdf.embedJpg(imgBytes);
+          var imgBytes = new Uint8Array(await files[i].arrayBuffer());
+          img = kind === 'png' ? await pdf.embedPng(imgBytes) : await pdf.embedJpg(imgBytes);
         }
         var dims = img.scale(1);
         var page = pdf.addPage([dims.width, dims.height]);
@@ -347,9 +370,7 @@
     bar.style.width = '5%';
     try {
       var buf = await f.arrayBuffer();
-      var pdfjsLib = window.pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var pdf = await openPdfDocument(buf);
       var n = pdf.numPages;
       var grid = document.getElementById('pdf-pdf2img-grid');
       for (var i = 1; i <= n; i++) {
@@ -402,6 +423,8 @@
     } catch (e) {
       document.getElementById('pdf-pdf2img-output').textContent = 'Error: ' + (e.message || 'no se pudo convertir el PDF');
       prog.classList.remove('active');
+    } finally {
+      await destroyPdfDocument(pdf);
     }
   }
 
@@ -418,9 +441,7 @@
     document.getElementById('pdf-text-output').value = 'Extrayendo...';
     try {
       var buf = await f.arrayBuffer();
-      var pdfjsLib = window.pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      var pdf = await openPdfDocument(buf);
       var n = pdf.numPages;
       var text = '';
       for (var i = 1; i <= n; i++) {
@@ -436,6 +457,8 @@
     } catch (e) {
       document.getElementById('pdf-text-output').value = 'Error: ' + (e.message || 'no se pudo extraer el texto');
       prog.classList.remove('active');
+    } finally {
+      await destroyPdfDocument(pdf);
     }
   }
 
@@ -445,7 +468,6 @@
   }
 </script>
 
-{#if activeTool.id === 'pdf-merge'}
 <div class="tool-panel" id="panel-pdf-merge">
   <div class="panel-header">
     <h2><i data-lucide="files"></i> Unir PDFs</h2>
@@ -461,9 +483,7 @@
   </div>
   <div class="output" id="pdf-merge-output"></div>
 </div>
-{/if}
 
-{#if activeTool.id === 'pdf-split'}
 <div class="tool-panel" id="panel-pdf-split">
   <div class="panel-header">
     <h2><i data-lucide="scissors"></i> Dividir PDF</h2>
@@ -487,16 +507,14 @@
     <div class="output" id="pdf-split-output"></div>
   </div>
 </div>
-{/if}
 
-{#if activeTool.id === 'pdf-img2pdf'}
 <div class="tool-panel" id="panel-pdf-img2pdf">
   <div class="panel-header">
     <h2><i data-lucide="image-plus"></i> Imágenes a PDF</h2>
-    <p>Crea un PDF a partir de imágenes JPG o PNG</p>
+    <p>Crea un PDF a partir de imágenes PNG, JPEG o WebP</p>
   </div>
   <label for="pdf-img2pdf-files">Selecciona las imágenes</label>
-  <input type="file" id="pdf-img2pdf-files" accept="image/*" multiple onchange={img2pdfList}>
+  <input type="file" id="pdf-img2pdf-files" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp" multiple onchange={img2pdfList}>
   <ul id="pdf-img2pdf-list" style="margin-top:10px;font-size:0.85rem;color:var(--muted);list-style:none;padding:0"></ul>
   <div class="btn-row">
     <button class="btn" onclick={imagesToPDF}><i data-lucide="image-plus"></i> Crear PDF</button>
@@ -504,9 +522,7 @@
   </div>
   <div class="output" id="pdf-img2pdf-output"></div>
 </div>
-{/if}
 
-{#if activeTool.id === 'pdf-pdf2img'}
 <div class="tool-panel" id="panel-pdf-pdf2img">
   <div class="panel-header">
     <h2><i data-lucide="images"></i> PDF a Imágenes</h2>
@@ -528,9 +544,7 @@
   <div class="output" id="pdf-pdf2img-output"></div>
   <div id="pdf-pdf2img-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-top:14px"></div>
 </div>
-{/if}
 
-{#if activeTool.id === 'pdf-text'}
 <div class="tool-panel" id="panel-pdf-text">
   <div class="panel-header">
     <h2><i data-lucide="type"></i> Extraer Texto</h2>
@@ -545,4 +559,3 @@
   </div>
   <textarea id="pdf-text-output" readonly style="margin-top:10px;min-height:200px;font-family:inherit" placeholder="El texto extraído aparecerá aquí..."></textarea>
 </div>
-{/if}

@@ -5,7 +5,6 @@
   let file = null;
   let sourceUrl = '';
   let resultUrl = '';
-  let resultBlob = null;
   let status = 'Selecciona una imagen para redimensionarla o reducir su peso.';
   let sourceMeta = '';
   let resultMeta = '';
@@ -52,7 +51,7 @@
   function targetSize(width, height) {
     const safeWidth = Math.max(1, Number(maxWidth) || width);
     const safeHeight = Math.max(1, Number(maxHeight) || height);
-    if (!keepAspect) return { width: safeWidth, height: safeHeight };
+    if (!keepAspect) return { width: Math.min(width, Math.round(safeWidth)), height: Math.min(height, Math.round(safeHeight)) };
     const ratio = Math.min(safeWidth / width, safeHeight / height, 1);
     return {
       width: Math.max(1, Math.round(width * ratio)),
@@ -67,7 +66,6 @@
     revoke(sourceUrl);
     revoke(resultUrl);
     resultUrl = '';
-    resultBlob = null;
     resultMeta = '';
     sourceUrl = URL.createObjectURL(nextFile);
     try {
@@ -104,7 +102,6 @@
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, format, Number(quality)));
       if (!blob) throw new Error('El navegador no pudo exportar la imagen.');
       revoke(resultUrl);
-      resultBlob = blob;
       resultUrl = URL.createObjectURL(blob);
       const saved = Math.max(0, Math.round((1 - blob.size / file.size) * 100));
       resultMeta = `${size.width} x ${size.height}px · ${formatBytes(blob.size)} · ${saved}% menos`;
